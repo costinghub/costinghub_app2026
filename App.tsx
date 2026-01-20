@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
@@ -103,9 +102,9 @@ const App: React.FC = () => {
              <Route path="masters/grade" element={<CastingMasters type="GRADE" />} />
              <Route path="masters/moulding" element={<CastingMasters type="BOX" />} />
              <Route path="masters/melting" element={<CastingMasters type="FURNACE" />} />
-             <Route path="masters/fettling" element={<CastingMasters type="GRADE" />} /> {/* Routing to CastingMasters is tab-based */}
-             <Route path="masters/consumables" element={<CastingMasters type="GRADE" />} />
-             <Route path="masters/elements" element={<CastingMasters type="GRADE" />} />
+             <Route path="masters/fettling" element={<CastingMasters type="FETTLING" />} />
+             <Route path="masters/consumables" element={<CastingMasters type="CONSUMABLES" />} />
+             <Route path="masters/elements" element={<CastingMasters type="ELEMENTS" />} />
           </Route>
           
           <Route path="assembly">
@@ -115,9 +114,7 @@ const App: React.FC = () => {
              <Route path="masters/labor" element={<AssemblyMasters type="LABOR" />} />
           </Route>
           
-          <Route path="cost-master" element={<CostMaster />} />
           <Route path="team" element={<UserManagement />} />
-          <Route path="approval-config" element={<ApprovalConfiguration />} />
           <Route path="enterprises" element={<EnterpriseManagement />} />
           <Route path="admin/plan-features" element={<PlanFeatureManagement />} />
           <Route path="admin/feedbacks" element={<AdminFeedbacks />} />
