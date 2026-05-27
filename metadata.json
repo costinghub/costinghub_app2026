@@ -1,0 +1,5 @@
+{
+  "name": "CostingHub",
+  "description": "A client-side manufacturing cost calculator optimized for Vercel. Features local storage data persistence, material/machine master management, and Gemini-powered process analysis.",
+  "requestFramePermissions": []
+}
