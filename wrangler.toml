@@ -1,0 +1,32 @@
+name = "costinghub-app-2026"
+type = "javascript"
+main = "dist/index.html"
+compatibility_date = "2026-05-28"
+
+[env.production]
+route = "example.com/*"
+zone_id = ""
+
+[build]
+command = "npm run build"
+cwd = "./"
+watch_paths = ["src/**/*.tsx"]
+
+[env.production.build]
+command = "npm run build"
+
+[[rules]]
+type = "CompiledContentType"
+globs = ["**/*.wasm"]
+fallthrough = true
+
+[[rules]]
+type = "Text"
+globs = ["**/*.svg"]
+fallthrough = true
+
+[assets]
+binding = "ASSETS"
+directory = "./dist"
+include = ["*.html", "*.js", "*.css", "*.svg", "*.json", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp"]
+exclude = ["wrangler.json"]
