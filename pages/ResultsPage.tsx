@@ -6,7 +6,7 @@ import { Button } from '../components/ui/Button';
 import { ResultsDisplay } from '../components/ResultsDisplay';
 import { QuoteModal } from '../components/QuoteModal';
 
-export const ResultsPage: React.FC<ResultsPageProps> = ({ calculation, onBack, user }) => {
+export const ResultsPage: React.FC<ResultsPageProps> = ({ calculation, onBack, user, materials }) => {
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
 
   if (!calculation || !calculation.results) {
@@ -67,6 +67,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ calculation, onBack, u
               results={calculation.results} 
               currency={currency} 
               markups={calculation.inputs.markups}
+              batchVolume={calculation.inputs.batchVolume}
             />
         </Card>
 
@@ -75,6 +76,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ calculation, onBack, u
                 calculation={calculation}
                 user={user}
                 onClose={() => setIsQuoteModalOpen(false)}
+                materials={materials}
             />
         )}
     </div>

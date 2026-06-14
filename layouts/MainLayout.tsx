@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { User, View, Calculation, CalculatorHeaderInfo } from '../types';
 import { Sidebar } from '../components/Sidebar';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { AIAssistantWidget } from '../components/AIAssistantWidget';
 
 interface MainLayoutProps {
   user: User;
@@ -14,6 +15,8 @@ interface MainLayoutProps {
   onLogout: () => void;
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
+  currentModule: 'machining' | 'casting' | 'forging' | null;
+  onModuleChange: (module: 'machining' | 'casting' | 'forging' | null) => void;
 }
 
 const viewTitles: Record<View, string> = {
@@ -50,7 +53,7 @@ const MenuIcon: React.FC = () => (
     </svg>
 );
 
-export const MainLayout: React.FC<MainLayoutProps> = ({ user, session, currentView, onNavigate, children, editingCalculation, calculatorHeaderInfo, onLogout, theme, setTheme }) => {
+export const MainLayout: React.FC<MainLayoutProps> = ({ user, session, currentView, onNavigate, children, editingCalculation, calculatorHeaderInfo, onLogout, theme, setTheme, currentModule, onModuleChange }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const title = viewTitles[currentView] || 'Calculations';
     
@@ -60,7 +63,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ user, session, currentVi
     const partNumber = calculatorHeaderInfo?.partNumber || editingCalculation?.inputs.partNumber;
     const calculationNumber = calculatorHeaderInfo?.calculationNumber || editingCalculation?.inputs.calculationNumber;
 
-    const showSidebar = currentView !== 'landing';
+    const showSidebar = currentView !== 'auth' && currentView !== 'resetPassword' && currentView !== 'oauthConsent' && currentView !== 'landing' && currentView !== 'settings' && currentView !== 'subscription' && currentView !== 'profile' && !!currentModule;
 
     useEffect(() => {
         setIsMobileMenuOpen(false);
@@ -85,31 +88,33 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ user, session, currentVi
                   session={session}
                   currentView={currentView} 
                   onNavigate={onNavigate}
+                  currentModule={currentModule}
+                  onModuleChange={onModuleChange}
               />
           </div>
       )}
 
       <div className="flex-1 flex flex-col overflow-hidden w-full">
-        <header className="bg-surface/80 backdrop-blur-sm sticky top-0 z-10 p-4 h-14 flex items-center border-b border-border flex-shrink-0">
+        <header className="bg-surface text-text-primary sticky top-0 z-10 px-6 h-14 flex items-center border-b border-border flex-shrink-0 shadow-xs">
           <div className="w-full flex justify-between items-center">
-             <div className="flex items-center gap-3">
+             <div className="flex items-center gap-4">
                 {showSidebar && (
                     <button
                         onClick={() => setIsMobileMenuOpen(true)}
-                        className="p-1 rounded-md text-text-secondary hover:bg-surface hover:text-text-primary focus:outline-none lg:hidden"
+                        className="p-1 rounded-sm text-text-secondary hover:bg-background hover:text-text-primary focus:outline-none lg:hidden"
                     >
                         <MenuIcon />
                     </button>
                 )}
                 <div className="flex items-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
-                    <h1 className="text-sm font-bold text-text-primary tracking-tight">{pageTitle}</h1>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
+                    <h1 className="text-sm font-bold tracking-tight text-text-primary">{pageTitle}</h1>
                 </div>
              </div>
              
              <div className="flex items-center gap-4">
                 {currentView === 'calculator' && (partNumber || calculationNumber) && (
-                    <div className="hidden md:flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-text-muted bg-background px-3 py-1 rounded-full border border-border">
+                    <div className="hidden md:flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-text-secondary bg-background px-3 py-1 rounded-sm border border-border">
                         {partNumber && <span>Part: {partNumber}</span>}
                         {calculationNumber && <span>Calc: {calculationNumber}</span>}
                     </div>
@@ -118,7 +123,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ user, session, currentVi
                 <ThemeToggle theme={theme} setTheme={setTheme} />
                  <button
                     onClick={onLogout}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold text-red-500 hover:bg-red-50 transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs font-bold text-red-500 hover:bg-red-500/10 transition-colors"
                 >
                     <LogoutIcon />
                     <span className="hidden sm:inline">Logout</span>
@@ -126,11 +131,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ user, session, currentVi
              </div>
           </div>
         </header>
-        <main className="flex-1 p-4 sm:p-8 overflow-y-auto bg-[#FDFDFE]">
+        <main className="flex-1 p-4 sm:p-8 overflow-y-auto bg-background">
           <div className="max-w-[1400px] mx-auto">
             {children}
           </div>
         </main>
+        
+        {showSidebar && (
+          <AIAssistantWidget onNavigate={(view) => onNavigate(view as any)} />
+        )}
       </div>
     </div>
   );

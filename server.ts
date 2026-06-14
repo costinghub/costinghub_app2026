@@ -104,6 +104,46 @@ app.post("/api/calculations/:id/approve", async (req, res) => {
   }
 });
 
+// Proxy for Anthropic Claude API to circumvent browser CORS restrictions
+app.post("/api/ai/anthropic-proxy", async (req, res) => {
+  try {
+    const { model, prompt, system } = req.body;
+    const apiKey = req.headers['x-user-api-key']?.toString();
+    
+    if (!apiKey) {
+      return res.status(401).json({ error: 'Missing Anthropic API Key header (x-user-api-key)' });
+    }
+    
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model: model || "claude-3-5-sonnet-20241022",
+        max_tokens: 4000,
+        system: system || "You are a helpful assistant.",
+        messages: [
+          { role: "user", content: prompt }
+        ]
+      })
+    });
+    
+    const responseData: any = await response.json();
+    if (!response.ok) {
+      return res.status(response.status).json({ error: responseData.error?.message || 'Anthropic API failed' });
+    }
+    
+    res.json(responseData);
+  } catch (err: any) {
+    console.error("Error in Anthropic proxy route:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // API Routes
 app.get("/api/:table", async (req, res) => {
   try {

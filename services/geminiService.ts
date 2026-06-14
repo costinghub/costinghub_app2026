@@ -1,18 +1,110 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { GeminiSuggestion, GeminiToolSuggestion, GeminiProcessSuggestion, GeminiMachineSuggestion, MaterialMasterItem, Machine, Process, Tool, Operation } from '../types';
 import { TOOL_TYPES, TOOL_MATERIALS, ARBOR_OR_INSERT_OPTIONS, MACHINE_TYPES, ADDITIONAL_AXIS_OPTIONS } from '../constants';
+import { getAIConfig } from './aiConfig';
 
-let aiInstance: GoogleGenAI | null = null;
-
-const getAi = (): GoogleGenAI => {
-    if (!aiInstance) {
-        const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-        if (!apiKey) {
-            throw new Error("Gemini API Key is not configured. Please set GEMINI_API_KEY in your environment variables.");
-        }
-        aiInstance = new GoogleGenAI({ apiKey });
+const generateContentUniversal = async (args: {
+    model: string;
+    contents: string;
+    config?: {
+        responseMimeType?: string;
+        responseSchema?: any;
     }
-    return aiInstance;
+}): Promise<{ text: string }> => {
+    const config = getAIConfig();
+    const provider = config.provider || 'gemini';
+
+    if (provider === 'gemini') {
+        const apiKey = config.geminiKey || process.env.VITE_GEMINI_API_KEY || process.env.VITE_API_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY;
+        if (!apiKey) {
+            throw new Error("No Gemini API key is configured. Please paste your custom Gemini API key under 'Settings > AI Integration Portal'.");
+        }
+        const ai = new GoogleGenAI({ apiKey });
+        const selectedModel = config.geminiModel || args.model || 'gemini-1.5-flash';
+        
+        const response = await ai.models.generateContent({
+            model: selectedModel,
+            contents: args.contents,
+            config: args.config,
+        });
+        return { text: response.text || '' };
+    }
+
+    if (provider === 'openai') {
+        const apiKey = config.openaiKey;
+        if (!apiKey) {
+            throw new Error("No OpenAI API key is configured. Please paste your custom OpenAI API key under 'Settings > AI Integration Portal'.");
+        }
+        const selectedModel = config.openaiModel || 'gpt-4o-mini';
+        
+        let finalPrompt = args.contents;
+        if (args.config?.responseSchema) {
+            finalPrompt += `\n\nCRITICAL SPECIFICATION: Return ONLY a valid JSON object matching this schema structural specification: ${JSON.stringify(args.config.responseSchema, null, 2)}. No explanations, no conversation background, just raw parseable JSON string.`;
+        }
+
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: selectedModel,
+                messages: [
+                    { role: 'system', content: 'You are a professional manufacturing and machining calculator AI system. You provide accurate data models in raw json format.' },
+                    { role: 'user', content: finalPrompt }
+                ],
+                temperature: 0.1,
+                response_format: args.config?.responseMimeType === 'application/json' ? { type: 'json_object' } : undefined
+            })
+        });
+
+        if (!res.ok) {
+            const errJson = await res.json().catch(() => ({}));
+            throw new Error(`OpenAI API returned error: ${errJson.error?.message || res.statusText}`);
+        }
+
+        const data = await res.json();
+        const textValue = data.choices?.[0]?.message?.content || '';
+        return { text: textValue };
+    }
+
+    if (provider === 'anthropic') {
+        const apiKey = config.anthropicKey;
+        if (!apiKey) {
+            throw new Error("No Anthropic API key is configured. Please paste your custom Anthropic API key under 'Settings > AI Integration Portal'.");
+        }
+        const selectedModel = config.anthropicModel || 'claude-3-5-sonnet-latest';
+
+        let finalPrompt = args.contents;
+        if (args.config?.responseSchema) {
+            finalPrompt += `\n\nCRITICAL SPECIFICATION: Return ONLY a valid JSON object matching this schema structural specification: ${JSON.stringify(args.config.responseSchema, null, 2)}. Do not add conversational intro, text wrappers or anything besides the valid matching JSON structure.`;
+        }
+
+        const res = await fetch("/api/ai/anthropic-proxy", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-api-key': apiKey
+            },
+            body: JSON.stringify({
+                model: selectedModel,
+                prompt: finalPrompt,
+                system: 'You are a professional manufacturing and machining calculator AI system. You output valid matching structured JSON fields precisely.'
+            })
+        });
+
+        if (!res.ok) {
+            const errJson = await res.json().catch(() => ({}));
+            throw new Error(`Anthropic Proxy returned error: ${errJson.error || res.statusText}`);
+        }
+
+        const data = await res.json();
+        const textValue = data.content?.[0]?.text || '';
+        return { text: textValue };
+    }
+
+    throw new Error(`Unsupported active AI integration provider: ${provider}`);
 };
 
 /**
@@ -144,8 +236,7 @@ const materialResponseSchema = {
 
 export const suggestMaterial = async (prompt: string): Promise<GeminiSuggestion> => {
     try {
-        const ai = getAi();
-        const response = await ai.models.generateContent({
+        const response = await generateContentUniversal({
             model: 'gemini-3-flash-preview',
             contents: `Based on the following description, provide a detailed material profile. Description: "${prompt}"`,
             config: {
@@ -170,8 +261,7 @@ export const suggestMaterial = async (prompt: string): Promise<GeminiSuggestion>
 
 export const suggestMultipleMaterials = async (prompt: string): Promise<Omit<MaterialMasterItem, 'id' | 'user_id' | 'created_at'>[]> => {
     try {
-        const ai = getAi();
-        const response = await ai.models.generateContent({
+        const response = await generateContentUniversal({
             model: 'gemini-3-pro-preview',
             contents: `Based on the following request, provide a list of detailed material profiles. Description: "${prompt}"`,
             config: {
@@ -215,8 +305,7 @@ const toolResponseSchema = {
 
 export const suggestTool = async (prompt: string): Promise<GeminiToolSuggestion> => {
     try {
-        const ai = getAi();
-        const response = await ai.models.generateContent({
+        const response = await generateContentUniversal({
             model: 'gemini-3-flash-preview',
             contents: `Based on the following description, provide a detailed tool profile including brand, model, and estimated life. Infer typical cutting parameters for a common material if not specified. Description: "${prompt}"`,
             config: {
@@ -248,8 +337,7 @@ export const suggestTool = async (prompt: string): Promise<GeminiToolSuggestion>
 
 export const suggestMultipleTools = async (prompt: string): Promise<Omit<Tool, 'id' | 'user_id' | 'created_at'>[]> => {
     try {
-        const ai = getAi();
-        const response = await ai.models.generateContent({
+        const response = await generateContentUniversal({
             model: 'gemini-3-pro-preview',
             contents: `Based on the following request, provide a list of detailed tool profiles including brand, model, and estimated life. Infer typical cutting parameters for a common material if not specified. Description: "${prompt}"`,
             config: {
@@ -320,8 +408,7 @@ export const calculateToolLife = async (tool: Omit<Tool, 'id' | 'user_id' | 'cre
         Provide only the numeric value for the estimated life in hours in your JSON response.
     `;
     try {
-        const ai = getAi();
-        const response = await ai.models.generateContent({
+        const response = await generateContentUniversal({
             model: 'gemini-3-flash-preview',
             contents: prompt,
             config: {
@@ -382,8 +469,7 @@ export const calculateOperationToolLife = async (tool: Tool, operation: Operatio
         Considering the specific cutting parameters and process which cause wear, provide only the numeric value for the estimated life in hours.
     `;
     try {
-        const ai = getAi();
-        const response = await ai.models.generateContent({
+        const response = await generateContentUniversal({
             model: 'gemini-3-flash-preview',
             contents: prompt,
             config: {
@@ -438,8 +524,7 @@ const processResponseSchema = {
 
 export const suggestProcess = async (prompt: string): Promise<GeminiProcessSuggestion> => {
     try {
-        const ai = getAi();
-        const response = await ai.models.generateContent({
+        const response = await generateContentUniversal({
             model: 'gemini-3-pro-preview',
             contents: `Based on the following description, define a manufacturing process profile, including its typical calculation parameters and a URL to a schematic image. Description: "${prompt}"`,
             config: {
@@ -463,8 +548,7 @@ export const suggestProcess = async (prompt: string): Promise<GeminiProcessSugge
 
 export const suggestMultipleProcesses = async (prompt: string): Promise<Omit<Process, 'id' | 'user_id' | 'created_at'>[]> => {
     try {
-        const ai = getAi();
-        const response = await ai.models.generateContent({
+        const response = await generateContentUniversal({
             model: 'gemini-3-pro-preview',
             contents: `Based on the following request, provide a list of manufacturing process profiles, including their typical calculation parameters and a URL to a schematic image for each. Description: "${prompt}"`,
             config: {
@@ -503,8 +587,7 @@ const machineResponseSchema = {
 
 export const suggestMachine = async (prompt: string): Promise<GeminiMachineSuggestion> => {
     try {
-        const ai = getAi();
-        const response = await ai.models.generateContent({
+        const response = await generateContentUniversal({
             model: 'gemini-3-flash-preview',
             contents: `Based on the following description, provide a detailed machine profile. Description: "${prompt}"`,
             config: {
@@ -528,8 +611,7 @@ export const suggestMachine = async (prompt: string): Promise<GeminiMachineSugge
 
 export const suggestMultipleMachines = async (prompt: string): Promise<Omit<Machine, 'id' | 'user_id' | 'created_at'>[]> => {
     try {
-        const ai = getAi();
-        const response = await ai.models.generateContent({
+        const response = await generateContentUniversal({
             model: 'gemini-3-pro-preview',
             contents: `Based on the following request, provide a list of detailed machine profiles. Request: "${prompt}"`,
             config: {

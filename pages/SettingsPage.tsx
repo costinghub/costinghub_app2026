@@ -6,6 +6,7 @@ import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Select } from '../components/ui/Select';
 import { COUNTRIES } from '../constants';
+import { AIIntegrationPortal } from '../components/AIIntegrationPortal';
 
 const getExpiryStatus = (expiryDateString: string | null) => {
     if (!expiryDateString) {
@@ -30,11 +31,43 @@ const getExpiryStatus = (expiryDateString: string | null) => {
 };
 
 // Fix: Removed 'plans' from props as it is no longer passed.
-export const SettingsPage: React.FC<SettingsPageProps> = ({ user, session, onUpdateUser, onNavigate, isSuperAdmin }) => {
+export const SettingsPage: React.FC<SettingsPageProps> = ({ user, session, onUpdateUser, onNavigate, isSuperAdmin, onExportData, onImportData }) => {
     const [formData, setFormData] = useState<User>(user);
     const [saved, setSaved] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadError, setUploadError] = useState('');
+    const [backupStatus, setBackupStatus] = useState<string | null>(null);
+
+    const handleExport = () => {
+        const data = onExportData();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `backup_${data.module}_${new Date().toISOString()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        setBackupStatus('Backup exported!');
+        setTimeout(() => setBackupStatus(null), 3000);
+    };
+
+    const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = JSON.parse(event.target?.result as string);
+                onImportData(data);
+                setBackupStatus('Backup imported successfully!');
+                setTimeout(() => setBackupStatus(null), 3000);
+            } catch (err) {
+                setBackupStatus('Failed to import backup.');
+            }
+        };
+        reader.readAsText(file);
+    };
 
     useEffect(() => {
         setFormData(user);
@@ -188,6 +221,21 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, session, onUpd
                          <Input label="Next Calculation Number" name="calcNextNumber" type="number" value={formData.calcNextNumber || 1} onChange={handleInputChange} />
                     </div>
                 </Card>
+
+                <Card className="mt-8">
+                    <h2 className="text-2xl font-semibold text-primary border-b border-border pb-3 mb-6">Backup & Restore</h2>
+                    <div className="flex flex-col md:flex-row gap-4 items-center">
+                        <Button onClick={handleExport}>Export Module Data</Button>
+                        <label className="cursor-pointer bg-surface py-2 px-3 border border-border rounded-md shadow-sm text-sm font-medium text-text-primary hover:bg-background">
+                            <span>Import Module Data</span>
+                            <input type="file" className="sr-only" onChange={handleImport} accept=".json" />
+                        </label>
+                        {backupStatus && <span className="text-sm text-text-muted">{backupStatus}</span>}
+                    </div>
+                </Card>
+
+                <AIIntegrationPortal />
+
 
                 <Card className="mt-8">
                     <h2 className="text-2xl font-semibold text-primary border-b border-border pb-3 mb-6">Subscription & Billing</h2>

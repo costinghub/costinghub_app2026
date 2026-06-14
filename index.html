@@ -55,29 +55,29 @@
     <style>
       :root {
         --color-primary: #8b5cf6; 
-        --color-primary-hover: #7c3aed;
+        --color-primary-hover: #7b2cbf;
         --color-primary-rgb: 139, 92, 246;
-        --color-secondary-accent: #ec4899;
-        --color-background: #111827; /* Darker Blue-Gray */
-        --color-surface: #1f2937;    /* Blue-Gray */
-        --color-text-primary: #f9fafb; /* Off-White */
-        --color-text-secondary: #9ca3af; /* Lighter Gray */
-        --color-text-muted: #6b7280;   
-        --color-border: #374151;     /* Lighter Border */
+        --color-secondary-accent: #db2777;
+        --color-background: #0b0f19; /* premium deep slate canvas */
+        --color-surface: #111827;    /* fine dark cards */
+        --color-text-primary: #f8fafc; 
+        --color-text-secondary: #cbd5e1; 
+        --color-text-muted: #94a3b8;   
+        --color-border: #1f2937;     
         --color-text-input: var(--color-primary);
       }
       [data-theme="light"] {
-        --color-primary: #8b5cf6;
-        --color-primary-hover: #7c3aed;
-        --color-primary-rgb: 139, 92, 246;
-        --color-secondary-accent: #ec4899;
-        --color-background: #f9fafb; 
+        --color-primary: #7c3aed; /* accessible violet */
+        --color-primary-hover: #6d28d9;
+        --color-primary-rgb: 124, 58, 237;
+        --color-secondary-accent: #db2777; 
+        --color-background: #f8fafc; /* smooth, cold light gray-slate background */
         --color-surface: #ffffff;    
-        --color-text-primary: #1f2937; 
-        --color-text-secondary: #4b5563; /* Darker Gray for better contrast */
-        --color-text-muted: #9ca3af;   
-        --color-border: #e5e7eb;     
-        --color-text-input: #111827; /* Near black */
+        --color-text-primary: #0f172a; /* high legibility charcoal slate */
+        --color-text-secondary: #334155; 
+        --color-text-muted: #64748b;   
+        --color-border: #e2e8f0; 
+        --color-text-input: #0f172a;
       }
       *, ::before, ::after {
           transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;
@@ -132,7 +132,19 @@
           height: auto !important;
         }
         #quote-modal-content .printable-text-primary { color: #1F2937 !important; }
-        #quote-modal-content .printable-text-secondary { color: #4B5563 !important; }
+        #quote-modal-content .printable-text-secondary { color: #111827 !important; }
+        #quote-modal-content .text-text-secondary,
+        #quote-modal-content .text-text-muted,
+        #quote-modal-content .text-slate-500,
+        #quote-modal-content .text-slate-600,
+        #quote-modal-content .text-slate-400,
+        #quote-modal-content .text-gray-500,
+        #quote-modal-content .text-gray-600,
+        #quote-modal-content .text-gray-400,
+        #quote-modal-content th,
+        #quote-modal-content td {
+          color: #111827 !important;
+        }
         #quote-modal-content .printable-bg-surface { background-color: #FFFFFF !important; }
         #quote-modal-content .printable-border { border-color: #E5E7EB !important; }
         

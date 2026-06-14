@@ -53,8 +53,9 @@ export const ToolSelectionModal: React.FC<ToolSelectionModalProps> = ({ isOpen, 
       
       const minD = parseFloat(minDiameter);
       const maxD = parseFloat(maxDiameter);
-      const minDiameterMatch = isNaN(minD) || tool.diameter >= minD;
-      const maxDiameterMatch = isNaN(maxD) || tool.diameter <= maxD;
+      const toolDia = Number(tool.diameter) || 0;
+      const minDiameterMatch = isNaN(minD) || toolDia >= minD;
+      const maxDiameterMatch = isNaN(maxD) || toolDia <= maxD;
       
       return machineTypeMatch && searchMatch && typeMatch && brandMatch && minDiameterMatch && maxDiameterMatch;
     });
@@ -143,9 +144,9 @@ export const ToolSelectionModal: React.FC<ToolSelectionModalProps> = ({ isOpen, 
                 <tr key={tool.id} className="hover:bg-background/60">
                   <td className="px-6 py-4 font-medium text-primary break-words">{tool.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{tool.toolType}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{tool.diameter.toFixed(2)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{(Number(tool.diameter) || 0).toFixed(2)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{tool.cuttingSpeedVc ?? 'N/A'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{tool.feedPerTooth?.toFixed(3) ?? 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{tool.feedPerTooth != null ? (Number(tool.feedPerTooth) || 0).toFixed(3) : 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <Button variant="secondary" onClick={() => onSelect(tool)}>Select</Button>
                   </td>

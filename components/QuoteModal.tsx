@@ -14,7 +14,7 @@ const formatCurrency = (value: number, currency: string) => {
 
 const DEFAULT_TERMS = "This quote is valid for 30 days.\nPayment terms: Net 30 upon receipt of invoice.\nDelivery: FOB Shipping Point, freight costs to be borne by the customer.\nAll work is performed to industry-standard tolerances unless otherwise specified on the drawing.";
 
-export const QuoteModal: React.FC<QuoteModalProps> = ({ calculation, user, onClose }) => {
+export const QuoteModal: React.FC<QuoteModalProps> = ({ calculation, user, onClose, materials }) => {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [billTo, setBillTo] = useState(calculation.inputs.customerName || '');
   const [terms, setTerms] = useState(DEFAULT_TERMS);
@@ -24,6 +24,9 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({ calculation, user, onClo
 
   const { inputs, results } = calculation;
   const currency = inputs.currency || 'USD';
+
+  const materialObj = materials?.find(m => m.id === inputs.materialType);
+  const materialGradeLabel = materialObj ? materialObj.name : inputs.materialType;
 
   const handlePrint = () => {
     window.print();
@@ -70,17 +73,45 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({ calculation, user, onClo
       {isExporting && (
         <style>{`
           #quote-document-body {
-            color: #000000 !important;
             background-color: white !important;
-          }
-          #quote-document-body .text-primary {
-            color: #000000 !important;
+            color: #111827 !important;
           }
           #quote-document-body * {
-            border-color: #000000 !important; 
+            color: #111827 !important;
+          }
+          #quote-document-body .text-text-primary {
+            color: #111827 !important;
+          }
+          #quote-document-body .text-text-secondary,
+          #quote-document-body .printable-text-secondary,
+          #quote-document-body .text-slate-500,
+          #quote-document-body .text-slate-600,
+          #quote-document-body .text-slate-400,
+          #quote-document-body .text-gray-500,
+          #quote-document-body .text-gray-600,
+          #quote-document-body .text-gray-400,
+          #quote-document-body th,
+          #quote-document-body td {
+            color: #111827 !important;
+          }
+          #quote-document-body .text-text-muted {
+            color: #111827 !important;
+          }
+          #quote-document-body .text-primary {
+            color: #6d28d9 !important;
+          }
+          #quote-document-body .text-green-600,
+          #quote-document-body .text-green-400 {
+            color: #047857 !important;
+          }
+          #quote-document-body .bg-green-600 {
+            background-color: #047857 !important;
+          }
+          #quote-document-body .bg-green-600 * {
+            color: white !important;
           }
           #quote-document-body .bg-background\\/50 {
-            background-color: #f9fafb !important;
+            background-color: #f3f4f6 !important;
           }
           #quote-document-body .bg-surface {
             background-color: white !important;
@@ -88,8 +119,16 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({ calculation, user, onClo
           #quote-document-body .bg-primary\\/5 {
             background-color: #f3f4f6 !important;
           }
-          #quote-document-body .results-breakdown-container * {
-             color: #000000 !important;
+          #quote-document-body .border,
+          #quote-document-body .border-border,
+          #quote-document-body .border-border\\/50,
+          #quote-document-body .border-border\\/60,
+          #quote-document-body .divide-border\\/40,
+          #quote-document-body .divide-border\\/50 {
+            border-color: #d1d5db !important;
+          }
+          #quote-document-body .divide-y > * + * {
+            border-color: #d1d5db !important;
           }
           .page-break-before {
             page-break-before: always !important;
@@ -126,24 +165,23 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({ calculation, user, onClo
             {/* Quote Header */}
             <div className="flex justify-between items-start mb-8 border-b border-border printable-border pb-6">
                 {/* User / Vendor Information (Left) */}
-                <div className="flex flex-col space-y-2">
-                    {user.company_logo_url ? (
+                <div className="flex flex-col space-y-1">
+                    {user.company_logo_url && (
                         <div className="h-16 w-auto mb-2">
                             <img src={user.company_logo_url} alt="Company Logo" className="max-h-full object-contain" />
                         </div>
-                    ) : (
-                        <h1 className="text-2xl font-bold printable-text-primary uppercase tracking-wide">{user.companyName || user.name || user.email}</h1>
                     )}
+                    <h1 className="text-xl font-bold printable-text-primary uppercase tracking-wide">{user.companyName || (user as any).company_name || user.name}</h1>
                     
                     {/* User Address Block */}
                     <div className="text-sm text-text-secondary printable-text-secondary leading-snug">
-                        {user.companyName && !user.company_logo_url && <p className="font-semibold">{user.name || user.email}</p>}
                         {userAddressComponents.map((line, idx) => (
                             <p key={idx}>{line}</p>
                         ))}
-                        <p>{user.email}</p>
-                        {user.phone && <p>{user.phone_country_code} {user.phone}</p>}
                     </div>
+                    {/* Account Email */}
+                    <p className="text-xs text-text-secondary printable-text-secondary mt-1">{user.email}</p>
+                    {user.phone && <p className="text-xs text-text-secondary printable-text-secondary">{user.phone_country_code} {user.phone}</p>}
                 </div>
 
                 {/* Branding & Document Type (Right) */}
@@ -211,7 +249,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({ calculation, user, onClo
                     <div className="space-y-1 text-sm text-text-primary printable-text-primary">
                       <p><span className="font-semibold text-text-secondary printable-text-secondary">Name:</span> {inputs.partName}</p>
                       <p><span className="font-semibold text-text-secondary printable-text-secondary">Number:</span> {inputs.partNumber}</p>
-                      <p><span className="font-semibold text-text-secondary printable-text-secondary">Material Grade:</span> {inputs.materialCategory} {inputs.materialType ? `/ ${inputs.materialType}` : ''}</p>
+                      <p><span className="font-semibold text-text-secondary printable-text-secondary">Material Grade:</span> {inputs.materialCategory} {materialGradeLabel ? `/ ${materialGradeLabel}` : ''}</p>
                       <p><span className="font-semibold text-text-secondary printable-text-secondary">Process:</span> {inputs.rawMaterialProcess}</p>
                     </div>
                 </div>
@@ -220,16 +258,8 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({ calculation, user, onClo
                   <h4 className="text-xs font-bold text-text-secondary printable-text-secondary uppercase tracking-wider mb-2">Pricing</h4>
                     <div className="space-y-1 text-sm text-text-primary printable-text-primary">
                       <div className="flex justify-between">
-                        <span className="font-semibold text-text-secondary printable-text-secondary">Batch Volume:</span>
-                        <span>{inputs.batchVolume}</span>
-                      </div>
-                      <div className="flex justify-between">
                         <span className="font-semibold text-text-secondary printable-text-secondary">Unit Price:</span>
                         <span>{formatCurrency(results.costPerPart, currency)}</span>
-                      </div>
-                      <div className="flex justify-between font-bold text-primary printable-text-primary border-t border-primary/20 pt-2 mt-2">
-                        <span>Batch Total:</span>
-                        <span>{formatCurrency(results.totalCost, currency)}</span>
                       </div>
                     </div>
                 </div>
@@ -271,7 +301,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({ calculation, user, onClo
                  {showBreakdown && (
                     <div className="animate-fade-in print:block results-breakdown-container">
                         <h3 className="text-lg font-bold text-primary mb-4">Internal Cost Breakdown</h3>
-                        <ResultsDisplay results={results} currency={currency} markups={inputs.markups} />
+                        <ResultsDisplay results={results} currency={currency} markups={inputs.markups} batchVolume={inputs.batchVolume} isPdfMode={true} />
                     </div>
                 )}
             </div>

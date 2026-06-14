@@ -1,6 +1,7 @@
 
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Clock } from 'lucide-react';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
@@ -121,7 +122,18 @@ const BilletVisualizer: React.FC<{ shape: string | undefined }> = ({ shape }) =>
     )
 }
 
-export const CalculatorPage: React.FC<CalculatorPageProps> = ({ user, materials, machines, processes, tools, regionCosts, regionCurrencyMap, templates = [], onSave, onSaveDraft, onAutoSaveDraft, onSaveTemplate, onBack, existingCalculation, theme, onNavigate, onHeaderInfoChange, onAddTool }) => {
+const formatDuration = (seconds?: number) => {
+  if (seconds === undefined || seconds === null) return '0s';
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  if (mins < 60) return `${mins}m ${secs}s`;
+  const hrs = Math.floor(mins / 60);
+  const remMins = mins % 60;
+  return `${hrs}h ${remMins}m`;
+};
+
+export const CalculatorPage: React.FC<CalculatorPageProps> = ({ user, materials, machines, processes, tools, regionCosts, regionCurrencyMap, templates = [], onSave, onSaveDraft, onAutoSaveDraft, onSaveTemplate, onBack, existingCalculation, theme, onNavigate, onHeaderInfoChange, onAddTool, calculations = [] }) => {
   const [formData, setFormData] = useState<MachiningInput>(INITIAL_INPUT);
   const [errors, setErrors] = useState<{ [key: string]: any }>({});
   const [isUploading, setIsUploading] = useState(false);
@@ -137,6 +149,30 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({ user, materials,
 
   const isInitialMount = useRef(true);
   const debounceTimeout = useRef<number | null>(null);
+  const startTimeRef = useRef<number>(Date.now());
+
+  const revisionSessionId = useRef<string | null>(null);
+  const revisionNumberRef = useRef<number | null>(null);
+  const parentCalculationIdRef = useRef<string | null>(null);
+
+  const getCleanBaseCalculationNumber = (num: string): string => {
+    if (!num) return '';
+    return num.replace(/-R\d+$/, '').replace(/-\d+$/, '');
+  };
+
+  useEffect(() => {
+    startTimeRef.current = Date.now();
+  }, [existingCalculation?.id]);
+
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
+
+  useEffect(() => {
+    setElapsedSeconds(0);
+    const interval = setInterval(() => {
+      setElapsedSeconds(Math.round((Date.now() - startTimeRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [existingCalculation?.id]);
   
   const isMetric = formData.unitSystem === 'Metric';
   const isSuperAdmin = useMemo(() => SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase()), [user.email]);
@@ -209,9 +245,27 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({ user, materials,
   
   useEffect(() => {
     if (existingCalculation) {
+      const baseId = existingCalculation.parent_id || existingCalculation.id;
+      const groupCalcs = (calculations || []).filter(c => 
+        (c.id === baseId || c.parent_id === baseId) && !c.is_hidden
+      );
+      const maxRevision = groupCalcs.reduce((max, c) => {
+        const rev = c.revision_number || 0;
+        return rev > max ? rev : max;
+      }, 0);
+      const nextRevision = maxRevision + 1;
+      const baseNum = getCleanBaseCalculationNumber(existingCalculation.inputs.calculationNumber);
+      const newCalcNumber = `${baseNum}-${nextRevision}`;
+
+      revisionSessionId.current = uuid();
+      revisionNumberRef.current = nextRevision;
+      parentCalculationIdRef.current = baseId;
+
       setFormData({
         ...INITIAL_INPUT,
         ...existingCalculation.inputs,
+        id: revisionSessionId.current,
+        calculationNumber: newCalcNumber,
         setups: existingCalculation.inputs.setups || [],
         surfaceTreatments: existingCalculation.inputs.surfaceTreatments || [],
         markups: existingCalculation.inputs.markups || INITIAL_INPUT.markups,
@@ -219,7 +273,11 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({ user, materials,
       });
       setSaveStatus('saved');
     } else {
-      const newCalcNumber = `${user?.calcPrefix || 'EST-'}${user?.calcNextNumber || 101}`;
+      const newCalcNumber = `${user?.calcPrefix || 'Costinghub-'}${user?.calcNextNumber || 101}`;
+      revisionSessionId.current = null;
+      revisionNumberRef.current = null;
+      parentCalculationIdRef.current = null;
+      
       setFormData(prev => {
         if (prev.id) {
           return { ...prev, calculationNumber: newCalcNumber };
@@ -234,7 +292,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({ user, materials,
       setSaveStatus('idle');
     }
     isInitialMount.current = true;
-  }, [existingCalculation, user]);
+  }, [existingCalculation, user, calculations]);
 
   useEffect(() => {
     if (isInitialMount.current) {
@@ -254,13 +312,16 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({ user, materials,
         }
         setSaveStatus('saving');
         const draftCalculation: Calculation = {
-          id: existingCalculation?.id || formData.id,
+          id: formData.id,
           name: formData.partName || 'Unnamed Part',
           inputs: formData,
           results: {} as any,
           status: 'draft',
           user_id: user.id,
-          created_at: existingCalculation?.created_at || formData.createdAt,
+          created_at: existingCalculation ? (existingCalculation.created_at || formData.createdAt) : formData.createdAt,
+          duration_seconds: (existingCalculation?.duration_seconds || 0) + Math.round((Date.now() - startTimeRef.current) / 1000),
+          parent_id: existingCalculation ? parentCalculationIdRef.current : null,
+          revision_number: existingCalculation ? revisionNumberRef.current : null,
         };
         await onAutoSaveDraft(draftCalculation);
         setSaveStatus('saved');
@@ -616,26 +677,32 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({ user, materials,
     if (validateForm()) {
       const results = calculateMachiningCosts(formData, machines, processes, tools, regionCosts);
       onSave({
-        id: existingCalculation?.id || formData.id,
-        name: 'calculate',
+        id: formData.id,
+        name: formData.partName || 'calculate',
         inputs: formData,
         results: results,
         status: 'final',
         user_id: user.id,
-        created_at: existingCalculation?.created_at || formData.createdAt
+        created_at: existingCalculation ? (existingCalculation.created_at || formData.createdAt) : formData.createdAt,
+        duration_seconds: (existingCalculation?.duration_seconds || 0) + Math.round((Date.now() - startTimeRef.current) / 1000),
+        parent_id: existingCalculation ? parentCalculationIdRef.current : null,
+        revision_number: existingCalculation ? revisionNumberRef.current : null,
       });
     }
   };
   
   const handleSaveDraftClick = () => {
     const draftCalculation: Calculation = {
-      id: existingCalculation?.id || formData.id,
+      id: formData.id,
       name: formData.partName || 'Unnamed Part',
       inputs: formData,
       results: {} as any,
       status: 'draft',
       user_id: user.id,
-      created_at: existingCalculation?.created_at || formData.createdAt,
+      created_at: existingCalculation ? (existingCalculation.created_at || formData.createdAt) : formData.createdAt,
+      duration_seconds: (existingCalculation?.duration_seconds || 0) + Math.round((Date.now() - startTimeRef.current) / 1000),
+      parent_id: existingCalculation ? parentCalculationIdRef.current : null,
+      revision_number: existingCalculation ? revisionNumberRef.current : null,
     };
     onSaveDraft(draftCalculation);
   };
@@ -988,7 +1055,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({ user, materials,
                                      setup.operations.forEach(op => {
                                          const processDef = processes.find(p => p.name === op.processName);
                                          const tool = tools.find(t => t.id === op.toolId);
-                                         const time = calculateOperationTime(op, processDef!, tool || null) / efficiencyDivisor;
+                                         const time = (processDef ? calculateOperationTime(op, processDef, tool || null) : 0) / efficiencyDivisor;
                              
                                          totalCycleTime += time;
                              
@@ -1099,7 +1166,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({ user, materials,
                                                                 {setup.operations.map((op, opIndex) => {
                                                                     const processDef = processes.find(p => p.name === op.processName);
                                                                     const selectedTool = tools.find(t => t.id === op.toolId);
-                                                                    const time = calculateOperationTime(op, processDef!, selectedTool || null) / (setup.efficiency || 1);
+                                                                    const time = (processDef ? calculateOperationTime(op, processDef, selectedTool || null) : 0) / (setup.efficiency || 1);
                                                                     const machineCost = selectedMachine && getPriceInfo(selectedMachine.id, 'machine', formData.region, selectedMachine.hourlyRate, selectedMachine.name).price > 0 ? (time / 60) * getPriceInfo(selectedMachine.id, 'machine', formData.region, selectedMachine.hourlyRate, selectedMachine.name).price : 0;
                                                                     
                                                                     let opToolCost = 0;
@@ -1139,7 +1206,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({ user, materials,
                                                     {setup.operations.length > 0 ? setup.operations.map((op, opIndex) => {
                                                         const processDef = processes.find(p => p.name === op.processName);
                                                         const selectedTool = tools.find(t => t.id === op.toolId);
-                                                        const time = calculateOperationTime(op, processDef!, selectedTool || null) / (setup.efficiency || 1);
+                                                        const time = processDef ? (calculateOperationTime(op, processDef, selectedTool || null) / (setup.efficiency || 1)) : 0;
                                                         const machineCost = selectedMachine && getPriceInfo(selectedMachine.id, 'machine', formData.region, selectedMachine.hourlyRate, selectedMachine.name).price > 0 ? (time / 60) * getPriceInfo(selectedMachine.id, 'machine', formData.region, selectedMachine.hourlyRate, selectedMachine.name).price : 0;
                                                         
                                                         let opToolCost = 0;
@@ -1299,18 +1366,24 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({ user, materials,
 
                 {/* Sticky Action Footer for Mobile / Standard Footer for Desktop */}
                 <div className="fixed bottom-0 left-0 right-0 p-4 bg-surface border-t border-border z-20 sm:static sm:bg-transparent sm:border-0 sm:p-0 flex justify-end items-center space-x-4 shadow-2xl sm:shadow-none">
-                    <div className="hidden sm:block text-sm text-text-muted transition-opacity duration-300 mr-auto">
-                        {saveStatus === 'unsaved' && 'Changes detected...'}
-                        {saveStatus === 'saving' && (
-                            <div className="flex items-center">
-                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-text-muted" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Saving draft...
-                            </div>
-                        )}
-                        {saveStatus === 'saved' && '✓ All changes saved'}
+                    <div className="flex items-center space-x-3 mr-auto">
+                        <div className="flex items-center text-text-secondary bg-surface border border-border/80 px-3 py-1.5 rounded-full font-mono font-medium text-xs shadow-xs">
+                            <Clock className="w-3.5 h-3.5 mr-1.5 animate-pulse text-primary" />
+                            <span>Active Time: {formatDuration((existingCalculation?.duration_seconds || 0) + elapsedSeconds)}</span>
+                        </div>
+                        <div className="hidden sm:block text-sm text-text-muted transition-opacity duration-300">
+                            {saveStatus === 'unsaved' && 'Changes detected...'}
+                            {saveStatus === 'saving' && (
+                                <div className="flex items-center">
+                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-text-muted" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Saving draft...
+                                </div>
+                            )}
+                            {saveStatus === 'saved' && '✓ All changes saved'}
+                        </div>
                     </div>
                     <Button type="button" variant="secondary" onClick={handleSaveDraftClick} className="flex-1 sm:flex-none">Save Draft</Button>
                     <Button type="submit" className="flex-1 sm:flex-none shadow-glow-primary">Calculate & Save</Button>

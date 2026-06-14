@@ -294,6 +294,11 @@ export const calculateMachiningCosts = (inputs: MachiningInput, machines: Machin
   let totalMachiningCostForBatch = 0;
   let totalToolCostForBatch = 0;
   const operationTimeBreakdown: { processName: string; timeMin: number; id: string; machineName?: string }[] = [];
+  const setupBreakdown: {
+    setupName: string;
+    machineName: string;
+    elements: { name: string; parameters?: string; cycleTimeMin: number; cost: number }[];
+  }[] = [];
 
   setups.forEach(setup => {
       const machine = machines.find(m => m.id === setup.machineId);
@@ -306,6 +311,32 @@ export const calculateMachiningCosts = (inputs: MachiningInput, machines: Machin
       totalSetupTimeMin += setupTimeForThisSetupMin;
       totalToolChangeTimeMin += toolChangeTimeForThisSetupMin;
 
+      const machineHourlyRate = machine 
+          ? getConvertedPrice(machine.id, 'machine', region, regionCosts, machine.hourlyRate, targetCurrency)
+          : 0;
+
+      const elements: { name: string; parameters?: string; cycleTimeMin: number; cost: number }[] = [];
+
+      // 1) Setup Preparation element
+      if (setupTimeForThisSetupMin > 0) {
+          elements.push({
+              name: 'Setup Preparation & Fixturing',
+              parameters: `Setup Time: ${setup.timePerSetupMin} min, Efficiency: ${Math.round(setup.efficiency * 100)}%`,
+              cycleTimeMin: setupTimeForThisSetupMin / (batchVolume || 1),
+              cost: ((setupTimeForThisSetupMin / 60) * machineHourlyRate) / (batchVolume || 1)
+          });
+      }
+
+      // 2) Tool Changes element
+      if (toolChangeTimeForThisSetupMin > 0) {
+          elements.push({
+              name: 'Tool Changes (Non-Cutting)',
+              parameters: `Tool Change: ${setup.toolChangeTimeSec} sec/tool, ${setup.operations.length} tools`,
+              cycleTimeMin: toolChangeTimeForThisSetupMin / (batchVolume || 1),
+              cost: ((toolChangeTimeForThisSetupMin / 60) * machineHourlyRate) / (batchVolume || 1)
+          });
+      }
+
       let cuttingTimeForThisSetupMin = 0;
 
       setup.operations.forEach(op => {
@@ -314,6 +345,7 @@ export const calculateMachiningCosts = (inputs: MachiningInput, machines: Machin
           const rawOpTimeMin = processDef ? calculateOperationTime(op, processDef, tool) : 0;
           const effectiveOpTimeMin = rawOpTimeMin / efficiencyDivisor;
           
+          let opToolCostPerPart = 0;
           if (tool && tool.price != null && tool.price > 0) {
             const regionalToolPrice = getConvertedPrice(tool.id, 'tool', region, regionCosts, tool.price, targetCurrency);
             const toolLifeHours = op.estimatedToolLifeHours ?? tool.estimatedLife;
@@ -322,6 +354,7 @@ export const calculateMachiningCosts = (inputs: MachiningInput, machines: Machin
               const toolCostPerMinute = regionalToolPrice / toolLifeMinutes;
               const opToolCost = toolCostPerMinute * effectiveOpTimeMin;
               totalToolCostForBatch += opToolCost * batchVolume;
+              opToolCostPerPart = opToolCost;
             }
           }
 
@@ -331,17 +364,43 @@ export const calculateMachiningCosts = (inputs: MachiningInput, machines: Machin
               id: op.id,
               machineName: machine?.name,
           });
+
+          const machiningCostPerPartForOp = (effectiveOpTimeMin / 60) * machineHourlyRate;
+          const totalCostPerPartForOp = machiningCostPerPartForOp + opToolCostPerPart;
+
+          // Format parameters string elegantly
+          const paramsList: string[] = [];
+          if (op.parameters) {
+              Object.entries(op.parameters)
+                  .filter(([k, v]) => v !== undefined && v !== null && v !== 0 && k !== 'manualSpindleSpeed' && k !== 'manualFeedRate')
+                  .forEach(([k, v]) => paramsList.push(`${k}: ${v}`));
+          }
+          if (tool) {
+              paramsList.push(`Tool: ${tool.name}`);
+          }
+
+          elements.push({
+              name: op.processName,
+              parameters: paramsList.length > 0 ? paramsList.join(', ') : undefined,
+              cycleTimeMin: effectiveOpTimeMin,
+              cost: totalCostPerPartForOp
+          });
           
           totalCuttingTimeMin += effectiveOpTimeMin;
           cuttingTimeForThisSetupMin += effectiveOpTimeMin;
       });
       
       if (machine) {
-        const machineHourlyRate = getConvertedPrice(machine.id, 'machine', region, regionCosts, machine.hourlyRate, targetCurrency);
         const totalMachineTimeForThisSetupMin = (cuttingTimeForThisSetupMin * batchVolume) + batchLevelTimeForThisSetup;
         const costForThisSetup = (totalMachineTimeForThisSetupMin / 60) * machineHourlyRate;
         totalMachiningCostForBatch += costForThisSetup;
       }
+
+      setupBreakdown.push({
+          setupName: setup.name,
+          machineName: machine ? `${machine.name} (${machine.brand})` : 'Generic Machine',
+          elements
+      });
   });
 
   const totalMachineTimeMinutesForBatch = (totalCuttingTimeMin * batchVolume) + totalSetupTimeMin + totalToolChangeTimeMin;
@@ -383,6 +442,7 @@ export const calculateMachiningCosts = (inputs: MachiningInput, machines: Machin
     materialCost,
     surfaceTreatmentCost,
     operationTimeBreakdown,
+    setupBreakdown,
     totalCuttingTimeMin,
     totalSetupTimeMin,
     totalToolChangeTimeMin,

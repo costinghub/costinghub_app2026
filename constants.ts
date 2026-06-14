@@ -359,3 +359,55 @@ export const DEFAULT_FREE_PLAN: SubscriptionPlan = {
     prices: { USD: { price: 0 } },
     features: ['Basic Calculation', 'Standard PDF Export'],
 };
+
+// --- CASTING SEED DATA DEFAULTS ---
+export const DEFAULT_CASTING_MATERIALS: Partial<MaterialMasterItem>[] = [
+  { name: 'Grey Iron (Class 30)', category: 'K - Cast Iron', subCategory: 'Cast Iron', properties: { 'Density': { value: 7.2, unit: 'g/cm³' }, 'Cost Per Kg': { value: 2.30, unit: 'USD' } } },
+  { name: 'Ductile Iron (65-45-12)', category: 'K - Cast Iron', subCategory: 'Cast Iron', properties: { 'Density': { value: 7.1, unit: 'g/cm³' }, 'Cost Per Kg': { value: 2.65, unit: 'USD' } } },
+  { name: 'Cast Carbon Steel', category: 'P - Steel', subCategory: 'Cast Steel', properties: { 'Density': { value: 7.82, unit: 'g/cm³' }, 'Cost Per Kg': { value: 3.40, unit: 'USD' } } },
+  { name: 'Cast Stainless Steel (316)', category: 'M - Stainless Steel', subCategory: 'Cast Stainless Steel', properties: { 'Density': { value: 8.0, unit: 'g/cm³' }, 'Cost Per Kg': { value: 6.80, unit: 'USD' } } },
+  { name: 'Cast Aluminum (A356)', category: 'N - Non-ferrous', subCategory: 'Cast Aluminum', properties: { 'Density': { value: 2.68, unit: 'g/cm³' }, 'Cost Per Kg': { value: 4.50, unit: 'USD' } } },
+  { name: 'Cast Bronze (C954)', category: 'N - Non-ferrous', subCategory: 'Cast Bronze', properties: { 'Density': { value: 7.45, unit: 'g/cm³' }, 'Cost Per Kg': { value: 8.20, unit: 'USD' } } }
+];
+
+export const DEFAULT_CASTING_MACHINES: Partial<Machine>[] = [
+  { name: 'Induction Melting Furnace', brand: 'Inductotherm', model: 'Meltminder 300T', hourlyRate: 85, machineType: 'Melting Tool', xAxis: 0, yAxis: 0, zAxis: 0, powerKw: 350, additionalAxis: 'none' },
+  { name: 'High Pressure Die Casting Machine', brand: 'Bühler', model: 'Carat 400', hourlyRate: 150, machineType: 'Die Casting Press', xAxis: 0, yAxis: 0, zAxis: 0, powerKw: 110, additionalAxis: 'none' },
+  { name: 'Automatic Sand Molding Line', brand: 'DISA', model: 'DISAMATIC D3', hourlyRate: 95, machineType: 'Molding Line', xAxis: 0, yAxis: 0, zAxis: 0, powerKw: 75, additionalAxis: 'none' }
+];
+
+export const DEFAULT_CASTING_PROCESSES: Partial<Process>[] = [
+  { name: 'Sand Casting Process', group: 'Casting Molding', compatibleMachineTypes: ['Molding Line'], parameters: [{ name: 'moldingCycleTimeMin', label: 'Molding Cycle Time', unit: 'Min' }, { name: 'yieldRate', label: 'Casting Yield Rate', unit: '%' }] },
+  { name: 'Die Casting Process', group: 'Press Casting', compatibleMachineTypes: ['Die Casting Press'], parameters: [{ name: 'moldingCycleTimeMin', label: 'Injection Cycle Time', unit: 'Min' }, { name: 'yieldRate', label: 'Casting Yield Rate', unit: '%' }] }
+];
+
+export const DEFAULT_CASTING_TOOLS: Partial<Tool>[] = [
+  { name: 'Molding Box Pattern', brand: 'Sinto', model: 'SP-10', toolType: 'Patterns', material: 'Aluminum', diameter: 0, cornerRadius: null, numberOfTeeth: null, arborOrInsert: 'Shank', compatibleMachineTypes: ['Molding Line'], price: 2500, cuttingSpeedVc: null, feedPerTooth: null, speedRpm: null, feedRate: null, estimatedLife: 50000 },
+  { name: 'Die Casting mold set', brand: 'Bühler', model: 'DCM-V', toolType: 'Dies', material: 'H13 Tool Steel', diameter: 0, cornerRadius: null, numberOfTeeth: null, arborOrInsert: 'Insert', compatibleMachineTypes: ['Die Casting Press'], price: 35000, cuttingSpeedVc: null, feedPerTooth: null, speedRpm: null, feedRate: null, estimatedLife: 100000 }
+];
+
+// --- FORGING SEED DATA DEFAULTS ---
+export const DEFAULT_FORGING_MATERIALS: Partial<MaterialMasterItem>[] = [
+  { name: 'AISI 1045 Carbon Steel', category: 'P - Steel', subCategory: 'Forging Carbon Steel', properties: { 'Density': { value: 7.85, unit: 'g/cm³' }, 'Cost Per Kg': { value: 1.95, unit: 'USD' } } },
+  { name: 'AISI 4140 Alloy Steel', category: 'P - Steel', subCategory: 'Forging Alloy Steel', properties: { 'Density': { value: 7.85, unit: 'g/cm³' }, 'Cost Per Kg': { value: 2.80, unit: 'USD' } } },
+  { name: 'AISI 4340 Nickel-Moly Steel', category: 'P - Steel', subCategory: 'Forging Alloy Steel', properties: { 'Density': { value: 7.85, unit: 'g/cm³' }, 'Cost Per Kg': { value: 3.50, unit: 'USD' } } },
+  { name: 'AISI 316L Stainless Steel', category: 'M - Stainless Steel', subCategory: 'Forging Stainless Steel', properties: { 'Density': { value: 8.0, unit: 'g/cm³' }, 'Cost Per Kg': { value: 6.20, unit: 'USD' } } },
+  { name: 'Aluminum 6061-T6', category: 'N - Non-ferrous', subCategory: 'Forging Aluminum', properties: { 'Density': { value: 2.7, unit: 'g/cm³' }, 'Cost Per Kg': { value: 4.80, unit: 'USD' } } },
+  { name: 'Titanium Ti-6Al-4V', category: 'S - Superalloys & Titanium', subCategory: 'Forging Titanium', properties: { 'Density': { value: 4.43, unit: 'g/cm³' }, 'Cost Per Kg': { value: 26.00, unit: 'USD' } } }
+];
+
+export const DEFAULT_FORGING_MACHINES: Partial<Machine>[] = [
+  { name: '1600T Hot Forging Press', brand: 'Farina', model: 'HF-1600', hourlyRate: 160, machineType: 'Forging Press', xAxis: 0, yAxis: 0, zAxis: 0, powerKw: 220, additionalAxis: 'none' },
+  { name: 'Gas Fired Rotary Hearth Furnace', brand: 'Inductotherm', model: 'RHF-400', hourlyRate: 80, machineType: 'Heating Furnace', xAxis: 0, yAxis: 0, zAxis: 0, powerKw: 400, additionalAxis: 'none' },
+  { name: 'Shearing Machine', brand: 'Fimi', model: 'SM-500', hourlyRate: 50, machineType: 'Shearing', xAxis: 0, yAxis: 0, zAxis: 0, powerKw: 45, additionalAxis: 'none' }
+];
+
+export const DEFAULT_FORGING_PROCESSES: Partial<Process>[] = [
+  { name: 'Closed Die Forging Process', group: 'Forging Operations', compatibleMachineTypes: ['Forging Press'], parameters: [{ name: 'forgingCycleTimeSec', label: 'Forge Stroke Cycle', unit: 'Sec' }, { name: 'yieldRate', label: 'Material Yield Rate', unit: '%' }] },
+  { name: 'Induction Heating Process', group: 'Forging Preparation', compatibleMachineTypes: ['Heating Furnace'], parameters: [{ name: 'heatingEnergyCostPerKg', label: 'Heating Energy Cost', unit: 'USD/kg' }] }
+];
+
+export const DEFAULT_FORGING_TOOLS: Partial<Tool>[] = [
+  { name: 'Closed Die Tool Block Set', brand: 'Farina', model: 'DB-1600SR', toolType: 'Dies', material: 'H13 Forged Tool Steel', diameter: 0, cornerRadius: null, numberOfTeeth: null, arborOrInsert: 'Insert', compatibleMachineTypes: ['Forging Press'], price: 18500, cuttingSpeedVc: null, feedPerTooth: null, speedRpm: null, feedRate: null, estimatedLife: 15000 },
+  { name: 'Shearing Blades Set', brand: 'Fimi', model: 'SB-500', toolType: 'Cutting Blades', material: 'D2 Tool Steel', diameter: 0, cornerRadius: null, numberOfTeeth: null, arborOrInsert: 'Arbor', compatibleMachineTypes: ['Shearing'], price: 2000, cuttingSpeedVc: null, feedPerTooth: null, speedRpm: null, feedRate: null, estimatedLife: 50000 }
+];

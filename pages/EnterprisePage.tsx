@@ -28,7 +28,7 @@ export const EnterprisePage: React.FC<EnterprisePageProps> = ({ user }) => {
       setUsers(uData.filter(u => u.enterprise_id === user.enterprise_id || (user.role === 'enterprise_admin' && !u.enterprise_id))); // simplifying for demo
 
       const cData = await localDb.getAll<Calculation>('calculations');
-      setCalculations(cData);
+      setCalculations(cData.filter(c => !c.is_hidden));
     } catch (e) {
       console.error(e);
     } finally {

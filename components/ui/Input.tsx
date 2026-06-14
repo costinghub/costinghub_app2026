@@ -21,7 +21,7 @@ export const Input: React.FC<InputProps> = ({ label, unit, id, error, ...props }
         <input
           id={inputId}
           {...props}
-          className={`block w-full px-3 py-2 border rounded-md focus:outline-none sm:text-sm bg-background/50 text-text-input disabled:bg-surface disabled:text-text-muted transition-all duration-200 ${errorClasses}`}
+          className={`block w-full pl-3 ${unit ? 'pr-16' : 'pr-3'} py-2 border rounded-md focus:outline-none sm:text-sm bg-background/50 text-text-input disabled:bg-surface disabled:text-text-muted transition-all duration-200 ${errorClasses}`}
           aria-invalid={!!error}
           aria-describedby={error ? `${inputId}-error` : undefined}
         />

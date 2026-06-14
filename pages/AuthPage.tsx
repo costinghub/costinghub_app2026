@@ -96,14 +96,24 @@ export const AuthPage: React.FC<AuthPageProps> = ({ successMessage, setSuccessMe
   return (
     <div className="w-full max-w-md mx-auto py-12 md:py-24 animate-fade-in">
       <Card className="transform transition-all duration-500 hover:shadow-glow-primary hover:scale-[1.01] animate-fade-in-up">
-        <div className="text-center">
-            <h1 className="text-3xl font-bold text-primary mb-2">
+        <div className="text-center mb-8">
+            <div className="flex flex-col items-center gap-1 mb-6">
+                <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-white mb-2 shadow-lg shadow-primary/20">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9Z"/></svg>
+                </div>
+                <h1 className="text-3xl font-bold tracking-wide text-text-primary">
+                    Costing<span className="text-primary font-extrabold ml-1">Hub</span>
+                </h1>
+                <p className="text-xs text-text-muted font-bold tracking-widest uppercase">All Costs. One Hub.</p>
+            </div>
+            
+            <h2 className="text-xl font-bold text-text-primary mb-2">
                 {isLogin ? 'Welcome Back!' : 'Create an Account'}
-            </h1>
-            <p className="text-text-secondary mb-8">
+            </h2>
+            <p className="text-text-secondary">
                 {isLogin ? "Don't have an account? " : "Already have an account? "}
-                <button onClick={toggleAuthMode} className="font-medium text-primary hover:underline focus:outline-none transition-colors">
-                {isLogin ? 'Sign Up' : 'Sign In'}
+                <button onClick={toggleAuthMode} className="font-bold text-primary hover:underline focus:outline-none transition-colors">
+                    {isLogin ? 'Sign Up' : 'Sign In'}
                 </button>
             </p>
         </div>

@@ -65,6 +65,7 @@ export interface MaterialMasterItem {
   category: "P - Steel" | "M - Stainless Steel" | "K - Cast Iron" | "N - Non-ferrous" | "S - Superalloys & Titanium" | "H - Hardened Steel" | "O - Polymers" | "SO - Special Alloys" | "Other";
   subCategory?: string;
   properties: { [key: string]: MaterialProperty } | Json;
+  module?: 'machining' | 'casting' | 'forging';
   user_id?: string;
   created_at?: string;
 }
@@ -81,6 +82,7 @@ export interface Machine {
   zAxis: number;
   powerKw: number;
   additionalAxis: string;
+  module?: 'machining' | 'casting' | 'forging';
   user_id?: string;
   created_at?: string;
 }
@@ -101,6 +103,7 @@ export interface Process {
   parameters: ProcessParameter[] | Json;
   formula?: string;
   imageUrl?: string;
+  module?: 'machining' | 'casting' | 'forging';
   user_id?: string;
   created_at?: string;
 }
@@ -123,6 +126,7 @@ export interface Tool {
   feedRate: number | null;
   estimatedLife: number | null;
   price: number | null;
+  module?: 'machining' | 'casting' | 'forging';
   user_id?: string;
   created_at?: string;
 }
@@ -223,6 +227,19 @@ export interface MarkupCosts {
   duty: number;
 }
 
+export interface SetupBreakdownElement {
+  name: string;
+  parameters?: string;
+  cycleTimeMin: number;
+  cost: number;
+}
+
+export interface SetupBreakdownItem {
+  setupName: string;
+  machineName: string;
+  elements: SetupBreakdownElement[];
+}
+
 export interface MachiningResult {
   rawMaterialWeightKg: number;
   finishedPartWeightKg: number;
@@ -231,6 +248,7 @@ export interface MachiningResult {
   materialCost: number; 
   surfaceTreatmentCost: number;
   operationTimeBreakdown: { processName: string; timeMin: number; id: string; machineName?: string }[];
+  setupBreakdown?: SetupBreakdownItem[];
   totalCuttingTimeMin: number;
   totalSetupTimeMin: number; 
   totalToolChangeTimeMin: number; 
@@ -246,12 +264,17 @@ export interface MachiningResult {
 export interface Calculation {
   id: string;
   name: string;
-  inputs: MachiningInput;
-  results?: MachiningResult;
+  inputs: MachiningInput | CastingInput | ForgingInput;
+  results?: MachiningResult | CastingResult | ForgingResult;
   status: 'draft' | 'final';
   approval_status?: 'pending' | 'approved' | 'rejected';
   user_id: string;
   created_at: string;
+  is_hidden?: boolean;
+  duration_seconds?: number;
+  parent_id?: string | null;
+  revision_number?: number | null;
+  calculatorType?: 'machining' | 'casting' | 'forging';
 }
 
 export interface User {
@@ -281,11 +304,30 @@ export interface User {
   industry: string | null;
   company_size: string | null;
   tax_id: string | null;
+  country?: string | null;
+  gemini_api_key?: string | null;
+  claude_api_key?: string | null;
+  openai_api_key?: string | null;
 }
 
 export interface LandingPageProps {
   onNavigate: (view: View) => void;
   user: User;
+  session: { user: User; access_token: string } | null;
+  calculationsCount?: number;
+  materialsCount?: number;
+  machinesCount?: number;
+  processesCount?: number;
+  toolsCount?: number;
+}
+
+export interface BackupData {
+  module: 'machining' | 'casting' | 'forging';
+  calculations: Calculation[];
+  materials: MaterialMasterItem[];
+  machines: Machine[];
+  processes: Process[];
+  tools: Tool[];
 }
 
 export interface SettingsPageProps {
@@ -294,6 +336,8 @@ export interface SettingsPageProps {
   onUpdateUser: (user: Partial<User>) => void;
   onNavigate: (view: View) => void;
   isSuperAdmin: boolean;
+  onExportData: () => BackupData;
+  onImportData: (data: BackupData) => void;
 }
 
 export interface MaterialsPageProps {
@@ -351,6 +395,7 @@ export interface CalculatorPageProps {
   onNavigate: (view: View) => void;
   onHeaderInfoChange: (info: CalculatorHeaderInfo) => void;
   onAddTool: (tool: Tool) => void;
+  calculations?: Calculation[];
 }
 
 export interface DashboardPageProps {
@@ -363,18 +408,21 @@ export interface DashboardPageProps {
   onUpgrade: () => void;
   isSuperAdmin: boolean;
   theme: 'light' | 'dark';
+  activeModule?: 'machining' | 'casting' | 'forging';
 }
 
 export interface ResultsPageProps {
   user: User;
   calculation: Calculation | null;
   onBack: () => void;
+  materials: MaterialMasterItem[];
 }
 
 export interface QuoteModalProps {
   calculation: Calculation;
   user: User;
   onClose: () => void;
+  materials: MaterialMasterItem[];
 }
 
 export interface SuperAdminPageProps {
@@ -503,6 +551,8 @@ export type View =
   | 'landing'
   | 'calculations' 
   | 'calculator' 
+  | 'castingCalculator'
+  | 'forgingCalculator'
   | 'results' 
   | 'materials' 
   | 'machines' 
@@ -550,3 +600,155 @@ export interface DocumentationPageProps {
   onUpdate: (section: DocumentationSection) => void;
   isSuperAdmin: boolean;
 }
+
+export interface CastingInput {
+  id: string;
+  original_id?: string;
+  calculationNumber: string;
+  partNumber: string;
+  partName: string;
+  customerName: string;
+  revision: string;
+  partImage?: string;
+  createdAt: string;
+  annualVolume: number;
+  batchVolume: number;
+  unitSystem: 'Metric' | 'Imperial';
+  region: string;
+  currency: string;
+  
+  // Casting Material Info
+  materialCategory: string; // e.g., "Ferrous", "Non-Ferrous"
+  materialType: string; // e.g. "Grey Cast Iron", "Ductile Iron", "Cast Steel", "Cast Aluminum"
+  rawMaterialWeightKg: number; 
+  finishedPartWeightKg: number;
+  materialCostPerKg: number;
+  materialDensityGcm3: number;
+  
+  // Casting Specific Parameters
+  castingProcess: 'Sand Casting' | 'Pressure Die Casting' | 'Investment Casting' | 'Permanent Mold';
+  yieldRate: number; // e.g. 60%
+  scrapReturnValuePercent: number; // e.g. 50%
+  scrapReturnRate: number; // e.g. 95%
+
+  // Tooling & Pattern
+  patternCost: number; // Cost of pattern or die ($)
+  patternLifeShots: number; // Lifetime of pattern/die
+  coresUsed: boolean;
+  coreWeightKg: number;
+  coreMaterialCostPerKg: number;
+  coreBinderCostPerKg: number;
+  
+  // Casting Process Rates
+  meltingCostPerKg: number; // melting energy/overhead cost per kg
+  moldingCycleTimeMin: number; // time to make one mold
+  moldingHourlyRate: number; // labor/machine rate for molding ($/hr)
+  pouringTimeSec: number; // time to pour liquid metal
+  pouringHourlyRate: number; // labor rate for pouring ($/hr)
+  
+  fettlingTimeMin: number; // fettling time per part
+  fettlingHourlyRate: number; // fettling hourly labor rate
+  
+  inspectionCostPerPart: number; // NDT or visual inspection ($)
+  heatTreatmentCostPerPart: number; // heat treatment ($/part)
+  
+  surfaceTreatments: SurfaceTreatment[];
+  markups: Markups;
+}
+
+export interface CastingResult {
+  pouredWeightKg: number;
+  scrapWeightKg: number;
+  rawMaterialPartCost: number;
+  scrapCreditPerPart: number;
+  netMaterialCostPerPart: number;
+  
+  meltingCostPerPart: number;
+  moldingCostPerPart: number;
+  pouringCostPerPart: number;
+  coreCostPerPart: number;
+  fettlingCostPerPart: number;
+  
+  toolingAmortizedCostPerPart: number;
+  surfaceTreatmentCost: number;
+  
+  baseManufacturingCost: number;
+  
+  markupCosts: MarkupCosts;
+  totalCost: number;
+  costPerPart: number;
+}
+
+export interface ForgingInput {
+  id: string;
+  original_id?: string;
+  calculationNumber: string;
+  partNumber: string;
+  partName: string;
+  customerName: string;
+  revision: string;
+  partImage?: string;
+  createdAt: string;
+  annualVolume: number;
+  batchVolume: number;
+  unitSystem: 'Metric' | 'Imperial';
+  region: string;
+  currency: string;
+  
+  // Forging Material Info
+  materialCategory: string; // e.g. "Alloy Steel", "Carbon Steel"
+  materialType: string; // e.g. "AISI 4140", "AISI 1045", "Aluminum 6061"
+  finishedPartWeightKg: number;
+  materialCostPerKg: number;
+  materialDensityGcm3: number;
+  
+  // Forging Specific Yield / Parameters
+  forgingProcess: 'Closed Die Forging' | 'Open Die Forging' | 'Ring Rolling' | 'Warm/Cold Forging';
+  yieldRate: number; // e.g. 75%
+  scaleLossPercent: number; // e.g. 3% (matter lost in furnace oxide scale)
+  scrapReturnValuePercent: number; // e.g. 30% (flash value returned)
+  scrapReturnRate: number; // e.g. 90% (returned flash percentage capture)
+
+  // Tooling & Forging Dies
+  dieCost: number; // Die set purchase cost
+  dieLifeShots: number; // Total parts produced before wearing out
+
+  // Forging Operational / Cycle Rates
+  heatingEnergyCostPerKg: number; // high-temp furnace energy per kg heated
+  shearingHourlyRate: number; // labor/equipment rate for billet shearing/cutting
+  shearingCycleTimeSec: number; // seconds to cut one billet piece
+  forgingCycleTimeSec: number; // cycle time on forging press/hammer
+  forgingMachineHourlyRate: number; // high tonnage forging press or hammer line rate ($/hr)
+  
+  trimmingCycleTimeSec: number; // cycle time to trim flash from forged part
+  trimmingHourlyRate: number; // trimmer line labor/overhead rate ($/hr)
+  
+  inspectionCostPerPart: number; // NDT/quality audit ($/part)
+  heatTreatmentCostPerPart: number; // heat treatment ($/part)
+  partSurfaceAreaM2: number; // surface area for flat plating or blast descaling
+  surfaceTreatments: SurfaceTreatment[];
+  markups: Markups;
+}
+
+export interface ForgingResult {
+  rawBilletWeightKg: number;
+  flashScrapWeightKg: number;
+  scaleLossWeightKg: number;
+  rawMaterialBilletCost: number;
+  scrapCreditPerPart: number;
+  netMaterialCostPerPart: number;
+  
+  heatingCostPerPart: number;
+  shearingCostPerPart: number;
+  forgingPressCostPerPart: number;
+  trimmingCostPerPart: number;
+  toolingAmortizedCostPerPart: number;
+  surfaceTreatmentCost: number;
+  
+  baseManufacturingCost: number;
+  
+  markupCosts: MarkupCosts;
+  totalCost: number;
+  costPerPart: number;
+}
+

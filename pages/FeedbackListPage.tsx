@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
 import type { Feedback, FeedbackListPageProps } from '../types';
 import { Card } from '../components/ui/Card';
+import { localDb } from '../services/localDbService';
 
 type SortKey = keyof Feedback | 'created_at' | null;
 type SortDirection = 'ascending' | 'descending';
@@ -13,9 +14,26 @@ const DetailRow: React.FC<{ label: string; value: string | null | undefined }> =
     </div>
 );
 
-export const FeedbackListPage: React.FC<FeedbackListPageProps> = ({ feedbacks }) => {
+export const FeedbackListPage: React.FC<FeedbackListPageProps> = ({ feedbacks: initialFeedbacks }) => {
+    const [feedbacks, setFeedbacks] = useState<Feedback[]>(initialFeedbacks || []);
+    const [loading, setLoading] = useState(false);
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection } | null>({ key: 'created_at', direction: 'descending' });
     const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
+
+    useEffect(() => {
+        const fetchLatestFeedbacks = async () => {
+            setLoading(true);
+            try {
+                const latest = await localDb.getAll<Feedback>('feedback');
+                setFeedbacks(latest);
+            } catch (err) {
+                console.error('Error fetching feedbacks:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchLatestFeedbacks();
+    }, []);
 
     const sortedFeedbacks = useMemo(() => {
         const sortableItems = [...feedbacks];
@@ -58,7 +76,9 @@ export const FeedbackListPage: React.FC<FeedbackListPageProps> = ({ feedbacks })
                 <Card>
                     <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
                         <h2 className="text-2xl font-bold text-primary">User Feedback & Requests</h2>
-                        <span className="text-text-secondary">{feedbacks.length} submissions</span>
+                        <span className="text-text-secondary">
+                            {loading ? 'Refreshing...' : `${feedbacks.length} submissions`}
+                        </span>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-border">
