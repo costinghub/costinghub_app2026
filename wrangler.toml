@@ -1,19 +1,16 @@
 name = "costinghub-app"
-type = "javascript"
-account_id = ""
-workers_dev = true
+compatibility_date = "2026-06-14"
 
 [build]
 command = "npm run build"
 cwd = "./"
-watch_paths = ["src/**/*.ts", "src/**/*.tsx"]
 
-[[env.production]]
+[assets]
+directory = "./dist"
+
+[env.production]
 name = "costinghub-app-production"
 
 [env.production.vars]
 ENVIRONMENT = "production"
-
-[build.upload]
-format = "service-worker"
 
