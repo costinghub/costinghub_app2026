@@ -104,56 +104,87 @@
       @media print {
         @page {
           size: A4;
-          margin: 1cm;
+          margin: 1.5cm;
         }
+        
+        /* Force color adjust */
         body {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
-        }
-        body * {
-          visibility: hidden;
-        }
-        #quote-modal-content, #quote-modal-content * {
-          visibility: visible;
-        }
-        #quote-modal-content {
-          position: absolute;
-          left: 0;
-          top: 0;
-          width: 100%;
-          min-height: 100vh;
-          margin: 0;
-          padding: 20px;
-          border: none;
-          box-shadow: none;
-          color: black !important;
           background-color: white !important;
-          overflow: visible !important;
-          height: auto !important;
+          color: #0f172a !important;
         }
-        #quote-modal-content .printable-text-primary { color: #1F2937 !important; }
-        #quote-modal-content .printable-text-secondary { color: #111827 !important; }
-        #quote-modal-content .text-text-secondary,
-        #quote-modal-content .text-text-muted,
-        #quote-modal-content .text-slate-500,
-        #quote-modal-content .text-slate-600,
-        #quote-modal-content .text-slate-400,
-        #quote-modal-content .text-gray-500,
-        #quote-modal-content .text-gray-600,
-        #quote-modal-content .text-gray-400,
-        #quote-modal-content th,
-        #quote-modal-content td {
-          color: #111827 !important;
-        }
-        #quote-modal-content .printable-bg-surface { background-color: #FFFFFF !important; }
-        #quote-modal-content .printable-border { border-color: #E5E7EB !important; }
-        
-        /* Ensure text-primary colors (purple) print correctly */
-        .text-primary { color: #8b5cf6 !important; }
 
-        .no-print {
-            display: none !important;
+        /* Hide non-essential UI elements */
+        .no-print, 
+        header, 
+        .sidebar-container, 
+        .ai-assistant-widget, 
+        button:not(.print-include) {
+          display: none !important;
         }
+
+        /* Reset Layout for Print */
+        .h-screen, .overflow-hidden, .overflow-y-auto {
+          height: auto !important;
+          overflow: visible !important;
+          display: block !important;
+        }
+
+        main {
+          padding: 0 !important;
+          margin: 0 !important;
+          display: block !important;
+        }
+
+        .max-w-[1400px], .max-w-6xl, .max-w-4xl {
+          max-width: 100% !important;
+          width: 100% !important;
+          margin: 0 !important;
+        }
+
+        /* Force Print Colors on Components */
+        .bg-surface, .bg-background {
+          background-color: white !important;
+        }
+        
+        .Card, .bg-surface {
+          box-shadow: none !important;
+          border: 1px solid #e2e8f0 !important;
+          background-color: white !important;
+        }
+
+        .text-text-primary { color: #0f172a !important; }
+        .text-text-secondary { color: #334155 !important; }
+        .text-text-muted { color: #64748b !important; }
+        .text-primary { color: #7c3aed !important; }
+        
+        /* Results Specific Tuning */
+        .results-header {
+          border-bottom: 2px solid #7c3aed !important;
+          padding-bottom: 1rem !important;
+          margin-bottom: 2rem !important;
+        }
+
+        /* Ensure Quote Modal is the only thing shown if active */
+        #quote-modal-content {
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
+          width: 100% !important;
+          height: auto !important;
+          border: none !important;
+          box-shadow: none !important;
+          overflow: visible !important;
+        }
+
+        .printable-border { border-color: #e2e8f0 !important; }
+        .printable-text-primary { color: #0f172a !important; }
+        .printable-text-secondary { color: #334155 !important; }
+
+        /* Break Points */
+        .break-inside-avoid { page-break-inside: avoid !important; }
+        .page-break-before { page-break-before: always !important; }
       }
       
       /* Animation Keyframes */
@@ -212,6 +243,6 @@
 </head>
   <body class="bg-background text-text-primary antialiased">
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

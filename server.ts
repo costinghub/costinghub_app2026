@@ -21,7 +21,7 @@ let dbInitialized = false;
 async function initDb() {
   if (dbInitialized) return;
   try {
-    const schemaSql = fs.readFileSync(path.join(process.cwd(), 'schema.sql'), 'utf-8');
+    const schemaSql = fs.readFileSync(path.join(process.cwd(), 'src/db/schema.sql'), 'utf-8');
     await pool.query(schemaSql);
     // Ensure calculations table doesn't have restrictive FKs if profiles aren't synced
     await pool.query('ALTER TABLE calculations DROP CONSTRAINT IF EXISTS calculations_user_id_fkey');

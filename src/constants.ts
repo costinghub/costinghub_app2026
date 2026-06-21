@@ -1,0 +1,413 @@
+
+
+import type { MaterialProperty, MaterialMasterItem, Machine, Process, Tool, Calculation, MachiningInput, RegionCurrencyMap, ChangelogEntry, SubscriptionPlan, ReportTemplate } from "./types";
+
+// Helper to parse value and unit
+const parsePropertyValue = (rawKey: string, rawValue: string | number | null): MaterialProperty | undefined => {
+  if (rawValue === null || rawValue === "N/A" || rawValue === "") {
+    return undefined;
+  }
+
+  let unit = '';
+  let cleanKey = rawKey;
+
+  const unitMatch = rawKey.match(/\(([^)]+)\)/);
+  if (unitMatch && unitMatch[1]) {
+    unit = unitMatch[1];
+    cleanKey = rawKey.replace(/\s*\([^)]+\)/, '');
+  }
+
+  let value: number | string = rawValue;
+  if (typeof rawValue === 'string') {
+    const numValue = parseFloat(rawValue);
+    if (!isNaN(numValue) && isFinite(numValue)) {
+      value = numValue;
+    }
+  }
+  
+  // Specific conversions for consistency (e.g., to metric SI units where appropriate)
+  if (cleanKey === 'Density' && unit === 'lb/in³' && typeof value === 'number') {
+      value = parseFloat((value * 27.68).toFixed(4)); // 1 lb/in³ = 27.68 g/cm³
+      unit = 'g/cm³';
+  } else if (cleanKey === 'Max Service Temperature, Air' && unit === '°F' && typeof value === 'number') {
+      value = parseFloat(((value - 32) * 5/9).toFixed(1)); // Convert to °C
+      unit = '°C';
+  } else if (unit === 'ksi' && typeof value === 'number') {
+      value = parseFloat((value * 6.89476).toFixed(2)); // Convert ksi to MPa
+      unit = 'MPa';
+  } else if (unit === 'psi' && typeof value === 'number') {
+      value = parseFloat((value * 0.00689476).toFixed(2)); // Convert psi to MPa
+      unit = 'MPa';
+  }
+
+  return { value, unit };
+};
+
+
+const rawMaterialsData: any[] = [
+    // P - Steel
+    { id: 'mat_001', name: 'Steel 1018', category: 'P - Steel', subCategory: 'Non-alloyed steel 0.1-0.25% Carbon', properties: { 'Density (g/cm³)': 7.87, 'Cost Per Kg (USD)': 1.5, 'Tensile Strength, Ultimate (MPa)': 440, 'Modulus of Elasticity (GPa)': 205, 'Thermal Conductivity (W/m-K)': 51.9, 'Hardness, Rockwell R': 71 } },
+    { id: 'mat_002', name: 'Steel 1045', category: 'P - Steel', subCategory: 'Non-alloyed steel 0.26-0.50% Carbon', properties: { 'Density (g/cm³)': 7.87, 'Cost Per Kg (USD)': 1.8, 'Tensile Strength, Ultimate (MPa)': 570, 'Modulus of Elasticity (GPa)': 200, 'Thermal Conductivity (W/m-K)': 51, 'Hardness, Rockwell R': 84 } },
+    { id: 'mat_003', name: 'Steel 4140', category: 'P - Steel', subCategory: 'Low Alloyed Steel', properties: { 'Density (g/cm³)': 7.85, 'Cost Per Kg (USD)': 2.5, 'Tensile Strength, Ultimate (MPa)': 655, 'Modulus of Elasticity (GPa)': 190, 'Thermal Conductivity (W/m-K)': 42.6, 'Hardness, Rockwell R': 95 } },
+    { id: 'mat_004', name: 'Tool Steel D2', category: 'P - Steel', subCategory: 'Tool Steel and High Alloy Steel', properties: { 'Density (g/cm³)': 7.7, 'Cost Per Kg (USD)': 8, 'Tensile Strength, Ultimate (MPa)': 2150, 'Modulus of Elasticity (GPa)': 210, 'Thermal Conductivity (W/m-K)': 20, 'Hardness, Rockwell C': 62 } },
+
+    // M - Stainless Steel
+    { id: 'mat_005', name: 'Stainless Steel 304', category: 'M - Stainless Steel', subCategory: 'Austenitic', properties: { 'Density (g/cm³)': 8.0, 'Cost Per Kg (USD)': 4.5, 'Tensile Strength, Ultimate (MPa)': 515, 'Modulus of Elasticity (GPa)': 193, 'Thermal Conductivity (W/m-K)': 16.2, 'Hardness, Rockwell R': 88 } },
+    { id: 'mat_006', name: 'Stainless Steel 316', category: 'M - Stainless Steel', subCategory: 'Austenitic', properties: { 'Density (g/cm³)': 8.0, 'Cost Per Kg (USD)': 5.5, 'Tensile Strength, Ultimate (MPa)': 515, 'Modulus of Elasticity (GPa)': 193, 'Thermal Conductivity (W/m-K)': 16.3, 'Hardness, Rockwell R': 95 } },
+    { id: 'mat_007', name: 'Stainless Steel 430', category: 'M - Stainless Steel', subCategory: 'Ferritic', properties: { 'Density (g/cm³)': 7.8, 'Cost Per Kg (USD)': 3.5, 'Tensile Strength, Ultimate (MPa)': 450, 'Modulus of Elasticity (GPa)': 200, 'Thermal Conductivity (W/m-K)': 26.1, 'Hardness, Rockwell R': 85 } },
+    { id: 'mat_008', name: 'Stainless Steel 17-4 PH', category: 'M - Stainless Steel', subCategory: 'Precipitation Hardening', properties: { 'Density (g/cm³)': 7.8, 'Cost Per Kg (USD)': 12, 'Tensile Strength, Ultimate (MPa)': 1310, 'Modulus of Elasticity (GPa)': 200, 'Thermal Conductivity (W/m-K)': 17.9, 'Hardness, Rockwell C': 44 } },
+
+    // K - Cast Iron
+    { id: 'mat_009', name: 'Grey Cast Iron (Class 30)', category: 'K - Cast Iron', subCategory: 'Grey Cast Iron', properties: { 'Density (g/cm³)': 7.15, 'Cost Per Kg (USD)': 1.2, 'Tensile Strength, Ultimate (MPa)': 207, 'Modulus of Elasticity (GPa)': 96, 'Thermal Conductivity (W/m-K)': 53.3, 'Hardness, Brinell': 187 } },
+    { id: 'mat_010', name: 'Ductile Iron 65-45-12', category: 'K - Cast Iron', subCategory: 'Ductile Cast Iron', properties: { 'Density (g/cm³)': 7.1, 'Cost Per Kg (USD)': 1.8, 'Tensile Strength, Ultimate (MPa)': 448, 'Modulus of Elasticity (GPa)': 169, 'Thermal Conductivity (W/m-K)': 36, 'Hardness, Brinell': 170 } },
+
+    // N - Non-ferrous
+    { id: 'mat_011', name: 'Aluminum 6061-T6', category: 'N - Non-ferrous', subCategory: 'Aluminum', properties: { 'Density (g/cm³)': 2.7, 'Cost Per Kg (USD)': 4, 'Tensile Strength, Ultimate (MPa)': 310, 'Modulus of Elasticity (GPa)': 68.9, 'Thermal Conductivity (W/m-K)': 167, 'Hardness, Rockwell R': 60 } },
+    { id: 'mat_012', name: 'Aluminum 7075-T6', category: 'N - Non-ferrous', subCategory: 'Aluminum', properties: { 'Density (g/cm³)': 2.81, 'Cost Per Kg (USD)': 7, 'Tensile Strength, Ultimate (MPa)': 572, 'Modulus of Elasticity (GPa)': 71.7, 'Thermal Conductivity (W/m-K)': 130, 'Hardness, Rockwell R': 87 } },
+    { id: 'mat_013', name: 'Brass 360', category: 'N - Non-ferrous', subCategory: 'Copper Alloy', properties: { 'Density (g/cm³)': 8.5, 'Cost Per Kg (USD)': 9, 'Tensile Strength, Ultimate (MPa)': 360, 'Modulus of Elasticity (GPa)': 97, 'Thermal Conductivity (W/m-K)': 115, 'Hardness, Rockwell R': 78 } },
+
+    // S - Superalloys & Titanium
+    { id: 'mat_014', name: 'Titanium Ti-6Al-4V (Grade 5)', category: 'S - Superalloys & Titanium', subCategory: 'Titanium', properties: { 'Density (g/cm³)': 4.43, 'Cost Per Kg (USD)': 45, 'Tensile Strength, Ultimate (MPa)': 950, 'Modulus of Elasticity (GPa)': 113.8, 'Thermal Conductivity (W/m-K)': 6.7, 'Hardness, Rockwell C': 36 } },
+    { id: 'mat_015', name: 'Inconel 718', category: 'S - Superalloys & Titanium', subCategory: 'High Temperature Super Alloy (HRSA)', properties: { 'Density (g/cm³)': 8.19, 'Cost Per Kg (USD)': 50, 'Tensile Strength, Ultimate (MPa)': 1375, 'Modulus of Elasticity (GPa)': 200, 'Thermal Conductivity (W/m-K)': 11.4, 'Hardness, Rockwell C': 42 } },
+
+    // H - Hardened Steel
+    { id: 'mat_016', name: 'Hardened Steel 4140 (HRC 45)', category: 'H - Hardened Steel', subCategory: 'Hardened Steel', properties: { 'Density (g/cm³)': 7.85, 'Cost Per Kg (USD)': 3.5, 'Tensile Strength, Ultimate (MPa)': 1500, 'Modulus of Elasticity (GPa)': 205, 'Thermal Conductivity (W/m-K)': 42, 'Hardness, Rockwell C': 45 } },
+
+    // O - Polymers
+    { id: 'mat_017', name: 'Delrin (Acetal)', category: 'O - Polymers', subCategory: 'Thermoplastic', properties: { 'Density (g/cm³)': 1.41, 'Cost Per Kg (USD)': 10, 'Tensile Strength, Ultimate (MPa)': 65, 'Modulus of Elasticity (GPa)': 2.8, 'Thermal Conductivity (W/m-K)': 0.23, 'Hardness, Rockwell R': 120 } },
+    { id: 'mat_018', name: 'PEEK', category: 'O - Polymers', subCategory: 'High-Performance Thermoplastic', properties: { 'Density (g/cm³)': 1.32, 'Cost Per Kg (USD)': 100, 'Tensile Strength, Ultimate (MPa)': 95, 'Modulus of Elasticity (GPa)': 3.6, 'Thermal Conductivity (W/m-K)': 0.25, 'Hardness, Rockwell R': 126 } },
+];
+
+
+export const INITIAL_MATERIALS_MASTER: MaterialMasterItem[] = rawMaterialsData
+  .filter(material => {
+    const density = material.properties['Density (g/cm³)'];
+    const cost = material.properties['Cost Per Kg (USD)'];
+    const isValid = (value: any) => value !== null && value !== "N/A" && value !== "" && parseFloat(value) > 0;
+    return isValid(density) && isValid(cost);
+  })
+  .map(material => {
+  const newProperties: { [key: string]: MaterialProperty } = {};
+  for (const [key, value] of Object.entries(material.properties)) {
+    const parsed = parsePropertyValue(key, value as string | number | null);
+    if (parsed) {
+      const cleanKey = key.replace(/\s*\([^)]+\)/, '');
+      newProperties[cleanKey] = parsed;
+    }
+  }
+  return {
+    id: material.id,
+    name: material.name,
+    category: material.category as MaterialMasterItem['category'],
+    subCategory: (material as any).subCategory,
+    properties: newProperties
+  };
+}) as any;
+
+export const DEFAULT_MATERIAL_NAMES = new Set(INITIAL_MATERIALS_MASTER.map(m => m.name));
+
+export const DEFAULT_MACHINES_MASTER: Machine[] = [
+    { id: 'mach_001', name: 'HAAS VF-2', brand: 'HAAS', model: 'VF-2', hourlyRate: 75, machineType: 'CNC Mill', xAxis: 762, yAxis: 406, zAxis: 508, powerKw: 22.4, additionalAxis: '4th' },
+    { id: 'mach_002', name: 'Doosan Puma 2600Y', brand: 'Doosan', model: 'Puma 2600Y', hourlyRate: 90, machineType: 'CNC Lathe', xAxis: 260, yAxis: 105, zAxis: 830, powerKw: 22, additionalAxis: 'Y-Axis' },
+    { id: 'mach_003', name: 'Amada HFA-250W', brand: 'Amada', model: 'HFA-250W', hourlyRate: 40, machineType: 'Saw', xAxis: 250, yAxis: 250, zAxis: 0, powerKw: 4, additionalAxis: 'None' },
+    { id: 'mach_004', name: 'Okuma M560-V', brand: 'Okuma', model: 'M560-V', hourlyRate: 85, machineType: 'CNC Mill', xAxis: 1050, yAxis: 560, zAxis: 460, powerKw: 15, additionalAxis: '5th' },
+    { id: 'mach_005', name: 'Mazak Integrex i-200', brand: 'Mazak', model: 'Integrex i-200', hourlyRate: 150, machineType: 'CNC Lathe', xAxis: 450, yAxis: 250, zAxis: 1585, powerKw: 22, additionalAxis: 'Y-Axis' },
+    { id: 'mach_006', name: 'DMG Mori DMU 50', brand: 'DMG Mori', model: 'DMU 50', hourlyRate: 120, machineType: 'CNC Mill', xAxis: 650, yAxis: 520, zAxis: 475, powerKw: 13, additionalAxis: '5th' },
+    { id: 'mach_007', name: 'Fanuc Robodrill D21LiB5', brand: 'Fanuc', model: 'Robodrill D21LiB5', hourlyRate: 70, machineType: 'CNC Mill', xAxis: 700, yAxis: 400, zAxis: 330, powerKw: 10, additionalAxis: 'None' },
+    { id: 'mach_008', name: 'Okamoto ACC-8.20DX', brand: 'Okamoto', model: 'ACC-8.20DX', hourlyRate: 65, machineType: 'Grinder', xAxis: 500, yAxis: 200, zAxis: 300, powerKw: 5, additionalAxis: 'None' },
+    { id: 'mach_009', name: 'Gleason Genesis 200GX', brand: 'Gleason', model: '200GX', hourlyRate: 130, machineType: 'Gear Cutter', xAxis: 210, yAxis: 240, zAxis: 300, powerKw: 20, additionalAxis: 'None' },
+] as any;
+
+export const DEFAULT_MACHINE_NAMES = new Set(DEFAULT_MACHINES_MASTER.map(m => m.name));
+
+export const MACHINE_TYPES = ['CNC Mill', 'CNC Lathe', 'Grinder', 'Saw', 'Gear Cutter'];
+export const ADDITIONAL_AXIS_OPTIONS = ['None', '4th', '5th', 'Y-Axis'];
+
+export const DEFAULT_PROCESSES: Process[] = [
+    // MILLING
+    { id: 'proc_mill_001', name: 'Face Milling', group: 'Milling', compatibleMachineTypes: ['CNC Mill'], imageUrl: 'https://i.ibb.co/L5B703Q/face-milling.png',
+        parameters: [
+            { name: 'machiningLength', label: 'Machining Length (L)', unit: 'mm' },
+            { name: 'machiningWidth', label: 'Machining Width (W)', unit: 'mm' },
+            { name: 'totalDepth', label: 'Total Depth (TD)', unit: 'mm' },
+            { name: 'depthPerPass', label: 'Depth of Cut per Pass (ap)', unit: 'mm' },
+            { name: 'stepover', label: 'Stepover', unit: 'fraction' },
+        ],
+        formula: `(function() {
+            if (!toolDiameter || toolDiameter <= 0 || !feedRate || feedRate <= 0 || totalDepth <= 0 || depthPerPass <= 0 || machiningLength <= 0 || machiningWidth <= 0 || stepover <= 0) return 0;
+            const depthPassCount = Math.ceil(totalDepth / depthPerPass);
+            const stepoverWidth = stepover * toolDiameter;
+            const widthPassCount = machiningWidth <= toolDiameter ? 1 : Math.ceil((machiningWidth - toolDiameter) / stepoverWidth) + 1;
+            return (machiningLength / feedRate) * depthPassCount * widthPassCount;
+        })()`
+    },
+    { id: 'proc_mill_002', name: 'Peripheral Milling', group: 'Milling', compatibleMachineTypes: ['CNC Mill'], imageUrl: 'https://i.ibb.co/C1dC2F9/peripheral-milling.png', parameters: [
+        { name: 'edgeLength', label: 'Edge Length', unit: 'mm' },
+        { name: 'totalDepth', label: 'Total Depth (t)', unit: 'mm' },
+        { name: 'depthPerPass', label: 'Depth per Pass (ap)', unit: 'mm' },
+    ], formula: '((edgeLength + toolDiameter) * Math.ceil(totalDepth / (depthPerPass || 1))) / feedRate' },
+    { id: 'proc_mill_003', name: 'Slot Milling', group: 'Milling', compatibleMachineTypes: ['CNC Mill'], imageUrl: 'https://i.ibb.co/yY1h29J/slot-milling.png', parameters: [
+        { name: 'slotLength', label: 'Slot Length', unit: 'mm' },
+        { name: 'slotDepth', label: 'Slot Depth (t)', unit: 'mm' },
+        { name: 'depthPerPass', label: 'Depth per Pass (ap)', unit: 'mm' },
+    ], formula: '((slotLength + toolDiameter) * Math.ceil(slotDepth / (depthPerPass || 1))) / feedRate' },
+    { id: 'proc_mill_004', name: 'Pocketing (MRR)', group: 'Milling', compatibleMachineTypes: ['CNC Mill'], imageUrl: 'https://i.ibb.co/TqY2s1y/pocketing.png', parameters: [
+        { name: 'pocketLength', label: 'Pocket Length', unit: 'mm' },
+        { name: 'pocketWidth', label: 'Pocket Width', unit: 'mm' },
+        { name: 'pocketDepth', label: 'Pocket Depth', unit: 'mm' },
+        { name: 'radialEngagement', label: 'Radial Engagement (ae)', unit: 'mm' },
+        { name: 'axialEngagement', label: 'Axial Engagement (ap)', unit: 'mm' },
+    ], formula: '(axialEngagement > 0 && radialEngagement > 0 && feedRate > 0 ? (pocketLength * pocketWidth * pocketDepth) / (axialEngagement * radialEngagement * feedRate) : 0)' },
+    { id: 'proc_mill_005', name: 'Profiling / Contouring', group: 'Milling', compatibleMachineTypes: ['CNC Mill'], imageUrl: 'https://i.ibb.co/mHswkP5/contouring.png', parameters: [
+        { name: 'perimeter', label: 'Perimeter (P)', unit: 'mm' },
+        { name: 'totalDepth', label: 'Total Depth (t)', unit: 'mm' },
+        { name: 'depthPerPass', label: 'Depth per Pass (ap)', unit: 'mm' },
+    ], formula: '((perimeter + toolDiameter) * Math.ceil(totalDepth / (depthPerPass || 1))) / feedRate' },
+
+    // DRILLING
+    { id: 'proc_drill_001', name: 'Drilling', group: 'Drilling', compatibleMachineTypes: ['CNC Mill', 'CNC Lathe'], parameters: [
+        { name: 'holeDepth', label: 'Hole Depth', unit: 'mm' },
+        { name: 'numberOfHoles', label: 'Number of Holes', unit: 'qty' },
+    ], formula: '((holeDepth + (0.3 * toolDiameter)) / (feedRate || 1)) * numberOfHoles' },
+    { id: 'proc_drill_002', name: 'Tapping', group: 'Drilling', compatibleMachineTypes: ['CNC Mill', 'CNC Lathe'], parameters: [
+        { name: 'holeDepth', label: 'Thread Depth', unit: 'mm' },
+        { name: 'numberOfHoles', label: 'Number of Holes', unit: 'qty' },
+    ], formula: '((holeDepth * 2) / (feedRate || 1)) * numberOfHoles' },
+    { id: 'proc_drill_003', name: 'Reaming', group: 'Drilling', compatibleMachineTypes: ['CNC Mill', 'CNC Lathe'], parameters: [
+        { name: 'holeDepth', label: 'Hole Depth', unit: 'mm' },
+        { name: 'numberOfHoles', label: 'Number of Holes', unit: 'qty' },
+    ], formula: '(holeDepth / (feedRate || 1)) * numberOfHoles' },
+
+    // TURNING
+    { id: 'proc_turn_001', name: 'External Turning (OD)', group: 'Turning', compatibleMachineTypes: ['CNC Lathe'], parameters: [
+        { name: 'length', label: 'Turning Length', unit: 'mm' },
+        { name: 'diameterStart', label: 'Start Diameter', unit: 'mm' },
+        { name: 'diameterEnd', label: 'End Diameter', unit: 'mm' },
+        { name: 'depthPerPass', label: 'Depth of Cut (ap)', unit: 'mm' },
+    ], formula: '(length * Math.ceil(Math.abs(diameterStart - diameterEnd) / (2 * (depthPerPass || 1)))) / (feedRate || 1)' },
+    { id: 'proc_turn_002', name: 'Internal Turning (Boring)', group: 'Turning', compatibleMachineTypes: ['CNC Lathe'], parameters: [
+        { name: 'length', label: 'Boring Length', unit: 'mm' },
+        { name: 'diameterStart', label: 'Start Diameter', unit: 'mm' },
+        { name: 'diameterEnd', label: 'End Diameter', unit: 'mm' },
+        { name: 'depthPerPass', label: 'Depth of Cut (ap)', unit: 'mm' },
+    ], formula: '(length * Math.ceil(Math.abs(diameterEnd - diameterStart) / (2 * (depthPerPass || 1)))) / (feedRate || 1)' },
+    { id: 'proc_turn_003', name: 'Facing (Lathe)', group: 'Turning', compatibleMachineTypes: ['CNC Lathe'], parameters: [
+        { name: 'facingDiameter', label: 'Facing Diameter', unit: 'mm' },
+        { name: 'totalFacingDepth', label: 'Total Facing Depth', unit: 'mm' },
+        { name: 'depthPerPass', label: 'Depth of Cut (ap)', unit: 'mm' },
+    ], formula: '((facingDiameter / 2) * Math.ceil(totalFacingDepth / (depthPerPass || 1))) / (feedRate || 1)' },
+    { id: 'proc_turn_004', name: 'Parting / Grooving', group: 'Turning', compatibleMachineTypes: ['CNC Lathe'], parameters: [
+        { name: 'partingDiameter', label: 'Parting Diameter', unit: 'mm' },
+        { name: 'grooveDepth', label: 'Groove Depth', unit: 'mm' },
+    ], formula: '(grooveDepth / (feedRate || 1))' },
+    { id: 'proc_turn_005', name: 'Threading (Lathe)', group: 'Turning', compatibleMachineTypes: ['CNC Lathe'], parameters: [
+        { name: 'threadLength', label: 'Thread Length', unit: 'mm' },
+        { name: 'numberOfPasses', label: 'Number of Passes', unit: 'qty' },
+    ], formula: '(threadLength * numberOfPasses) / (feedRate || 1)' },
+
+    // GRINDING
+    { id: 'proc_grind_001', name: 'Surface Grinding', group: 'Grinding', compatibleMachineTypes: ['Grinder'], parameters: [
+        { name: 'length', label: 'Length', unit: 'mm' },
+        { name: 'width', label: 'Width', unit: 'mm' },
+        { name: 'totalDepth', label: 'Total Depth', unit: 'mm' },
+        { name: 'depthPerPass', label: 'Depth per Pass', unit: 'mm' },
+    ], formula: '(length * width * Math.ceil(totalDepth / (depthPerPass || 0.01))) / (feedRate || 1)' },
+
+    // SAWING
+    { id: 'proc_saw_001', name: 'Band Saw Cut-Off', group: 'Sawing', compatibleMachineTypes: ['Saw'], imageUrl: 'https://i.ibb.co/YyN1M0X/band-saw.png', parameters: [
+        { name: 'cutWidth', label: 'Cut Width/Diameter', unit: 'mm' },
+        { name: 'bladeTPI', label: 'Blade TPI', unit: 'TPI' },
+        { name: 'allowance', label: 'Approach/Exit Allowance', unit: 'mm' },
+    ], formula: '(cutWidth + allowance) / (feedRate || 1)' },
+];
+export const DEFAULT_PROCESS_NAMES = new Set(DEFAULT_PROCESSES.map(p => p.name));
+
+export const TOOL_TYPES = ['End Mill', 'Face Mill', 'Drill', 'Tap', 'Turning Insert', 'Boring Bar', 'Grooving Tool', 'Threading Tool', 'Parting Tool', 'Grinding Wheel', 'Hob Cutter', 'Shaper Cutter', 'Gear Form Cutter', 'Broach', 'Band Saw Blade', 'Circular Saw Blade'];
+export const TOOL_MATERIALS = ['HSS', 'Cobalt', 'Carbide', 'PCD', 'CBN'];
+export const ARBOR_OR_INSERT_OPTIONS: Tool['arborOrInsert'][] = ['Shank', 'Arbor', 'Insert'];
+
+export const DEFAULT_TOOLS_MASTER: Tool[] = [
+    { id: 'tool_001', name: 'Sandvik CoroMill Plura 10mm End Mill', brand: 'Sandvik', model: '2P342-1000-PA', toolType: 'End Mill', material: 'Carbide', diameter: 10, cornerRadius: 0.5, numberOfTeeth: 4, arborOrInsert: 'Shank', cuttingSpeedVc: 150, feedPerTooth: 0.06, compatibleMachineTypes: ['CNC Mill'], price: 95, estimatedLife: 50, speedRpm: null, feedRate: null },
+    { id: 'tool_004', name: 'Iscar HELIQUMILL 50mm Face Mill', brand: 'Iscar', model: 'HM90 F90A D50-5-22', toolType: 'Face Mill', material: 'Carbide', diameter: 50, cornerRadius: null, numberOfTeeth: 5, arborOrInsert: 'Arbor', cuttingSpeedVc: 200, feedPerTooth: 0.12, compatibleMachineTypes: ['CNC Mill'], price: 280, estimatedLife: 100, speedRpm: null, feedRate: null },
+    { id: 'tool_011', name: 'Amada SGLB 10 TPI Bandsaw Blade', brand: 'Amada', model: 'SGLB', toolType: 'Band Saw Blade', material: 'HSS', diameter: 27, cornerRadius: null, numberOfTeeth: 10, arborOrInsert: 'Shank', cuttingSpeedVc: 60, feedPerTooth: 0.05, compatibleMachineTypes: ['Saw'], price: 120, estimatedLife: 80, speedRpm: null, feedRate: null },
+];
+export const DEFAULT_TOOL_NAMES = new Set(DEFAULT_TOOLS_MASTER.map(t => t.name));
+
+export const RAW_MATERIAL_PROCESSES = ['Billet', 'Casting', 'Forging', '3D Printing', 'Other'];
+
+export const BILLET_SHAPES = [
+  { name: 'Block', parameters: [{name: 'length', label: 'Length'}, {name: 'width', label: 'Width'}, {name: 'height', label: 'Height'}] },
+  { name: 'Cylinder', parameters: [{name: 'diameter', label: 'Diameter'}, {name: 'height', label: 'Length/Height'}] },
+  { name: 'Tube', parameters: [{name: 'outerDiameter', label: 'Outer Dia.'}, {name: 'innerDiameter', label: 'Inner Dia.'}, {name: 'height', label: 'Length/Height'}] },
+  { name: 'Rectangle Tube', parameters: [{name: 'outerWidth', label: 'Outer Width'}, {name: 'outerHeight', label: 'Outer Height'}, {name: 'length', label: 'Length'}, {name: 'wallThickness', label: 'Wall Thickness'}] },
+  { name: 'Plate', parameters: [{name: 'length', label: 'Length'}, {name: 'width', label: 'Width'}, {name: 'height', label: 'Thickness'}] },
+  { name: 'Bar', parameters: [{name: 'length', label: 'Length'}, {name: 'width', label: 'Width'}, {name: 'height', label: 'Height'}] },
+  { name: 'Rod', parameters: [{name: 'diameter', label: 'Diameter'}, {name: 'height', label: 'Length'}] },
+  { name: 'Cube', parameters: [{name: 'side', label: 'Side Length'}] },
+];
+
+export const DEFAULT_REGION_CURRENCY_MAP: RegionCurrencyMap[] = [
+    { id: 'rcm_in', region: 'India', currency: 'INR' },
+    { id: 'rcm_us', region: 'USA', currency: 'USD' },
+    { id: 'rcm_de', region: 'Germany', currency: 'EUR' },
+] as any;
+
+export const SUPER_ADMIN_EMAILS = ['designersworldcbe@gmail.com'];
+
+export const INITIAL_INPUT: MachiningInput = {
+  id: '',
+  original_id: '',
+  calculationNumber: '',
+  partNumber: '',
+  partName: '',
+  customerName: '',
+  revision: 'A',
+  annualVolume: 1000,
+  batchVolume: 100,
+  createdAt: new Date().toISOString(),
+  partImage: '',
+  unitSystem: 'Metric',
+  region: 'USA',
+  currency: 'USD',
+  materialCategory: '',
+  materialType: '',
+  materialCostPerKg: 0,
+  materialDensityGcm3: 0,
+  rawMaterialProcess: 'Billet',
+  billetShape: 'Block',
+  billetShapeParameters: { length: 100, width: 100, height: 50 },
+  rawMaterialWeightKg: 0,
+  finishedPartWeightKg: 0,
+  partSurfaceAreaM2: 0,
+  transportCostPerKg: 0,
+  heatTreatmentCostPerKg: 0,
+  surfaceTreatments: [],
+  setups: [],
+  markups: {
+    general: 8,
+    admin: 5,
+    sales: 2,
+    miscellaneous: 1,
+    packing: 5,
+    transport: 5,
+    profit: 20,
+    duty: 0,
+  },
+};
+
+export const DEFAULT_CALCULATIONS_SHOWCASE: Calculation[] = [
+  {
+    id: 'calc_master_mill_v1',
+    inputs: {
+      id: 'inputs_master_mill', calculationNumber: 'TPL-MILL-01', partNumber: 'HSG-01', partName: 'CNC Mill Showcase', customerName: 'Showcase Customer', revision: 'A',
+      createdAt: new Date().toISOString(), annualVolume: 5000, batchVolume: 200, unitSystem: 'Metric', region: 'USA', currency: 'USD',
+      materialCategory: 'N - Non-ferrous', materialType: 'mat_011',
+      rawMaterialProcess: 'Billet', billetShape: 'Block', billetShapeParameters: { length: 120, width: 80, height: 40 },
+      rawMaterialWeightKg: 1.04, finishedPartWeightKg: 0.75, partSurfaceAreaM2: 0.05, materialCostPerKg: 4, materialDensityGcm3: 2.7, transportCostPerKg: 0.3, heatTreatmentCostPerKg: 0,
+      surfaceTreatments: [{ id: 'st1', name: 'Anodizing', cost: 2, unit: 'per_kg', based_on: 'finished_weight' }], 
+      markups: { general: 5, admin: 8, sales: 7, miscellaneous: 2, packing: 3, transport: 5, profit: 20, duty: 0 },
+      setups: [{
+        id: 'setup_mill_1', name: 'Milling Operations', machineId: 'mach_001', timePerSetupMin: 45, toolChangeTimeSec: 10, efficiency: 0.95,
+        operations: [
+          { id: 'op_m1', processName: 'Peripheral Milling', toolId: 'tool_001', parameters: { edgeLength: 120, totalDepth: 10, depthPerPass: 5 } },
+          { id: 'op_m2', processName: 'Pocketing (MRR)', toolId: 'tool_001', parameters: { pocketLength: 50, pocketWidth: 30, pocketDepth: 15, radialEngagement: 5, axialEngagement: 10 } },
+        ]
+      }]
+    },
+    status: 'final', user_id: 'system-default', created_at: '2025-01-01T00:00:00.000Z',
+  },
+];
+
+export const DEFAULT_CALCULATION_IDS = new Set(DEFAULT_CALCULATIONS_SHOWCASE.map(c => c.id));
+
+export const COUNTRY_CURRENCY_MAPPING = [
+  { country: 'India', currency: 'INR' }, { country: 'United States', currency: 'USD' }, { country: 'United Kingdom', currency: 'GBP' },
+  { country: 'Eurozone', currency: 'EUR' }, { country: 'Germany', currency: 'EUR' }, { country: 'France', currency: 'EUR' }, { country: 'Italy', currency: 'EUR' },
+];
+
+export const COUNTRIES = [
+    { name: 'India', code: 'IN', dial_code: '+91' },
+    { name: 'United States', code: 'US', dial_code: '+1' },
+    { name: 'United Kingdom', code: 'GB', dial_code: '+44' },
+    { name: 'Germany', code: 'DE', dial_code: '+49' },
+].sort((a, b) => a.name.localeCompare(b.name));
+
+export const CURRENCY_CONVERSION_RATES_TO_USD: { [key: string]: number } = {
+  USD: 1, EUR: 1.07, GBP: 1.27, INR: 0.012
+};
+
+export const ALL_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR'];
+export const CURRENCIES = ALL_CURRENCIES;
+
+export const CHANGELOG_DATA: ChangelogEntry[] = [
+    {
+        version: "1.0.0",
+        date: "2025-07-15",
+        title: "Initial Launch of CostingHub",
+        changes: [
+            { type: "new", description: "Launch of the Machining Cost Calculator with core functionalities." },
+        ]
+    }
+];
+
+export const DEFAULT_FREE_PLAN: SubscriptionPlan = {
+    id: 'plan_free',
+    name: 'Free',
+    calculation_limit: 5,
+    period: 'monthly',
+    is_custom_price: false,
+    prices: { USD: { price: 0 } },
+    features: ['Basic Calculation', 'Standard PDF Export'],
+};
+
+// --- CASTING SEED DATA DEFAULTS ---
+export const DEFAULT_CASTING_MATERIALS: Partial<MaterialMasterItem>[] = [
+  { name: 'Grey Iron (Class 30)', category: 'K - Cast Iron', subCategory: 'Cast Iron', properties: { 'Density': { value: 7.2, unit: 'g/cm³' }, 'Cost Per Kg': { value: 2.30, unit: 'USD' } } },
+  { name: 'Ductile Iron (65-45-12)', category: 'K - Cast Iron', subCategory: 'Cast Iron', properties: { 'Density': { value: 7.1, unit: 'g/cm³' }, 'Cost Per Kg': { value: 2.65, unit: 'USD' } } },
+  { name: 'Cast Carbon Steel', category: 'P - Steel', subCategory: 'Cast Steel', properties: { 'Density': { value: 7.82, unit: 'g/cm³' }, 'Cost Per Kg': { value: 3.40, unit: 'USD' } } },
+  { name: 'Cast Stainless Steel (316)', category: 'M - Stainless Steel', subCategory: 'Cast Stainless Steel', properties: { 'Density': { value: 8.0, unit: 'g/cm³' }, 'Cost Per Kg': { value: 6.80, unit: 'USD' } } },
+  { name: 'Cast Aluminum (A356)', category: 'N - Non-ferrous', subCategory: 'Cast Aluminum', properties: { 'Density': { value: 2.68, unit: 'g/cm³' }, 'Cost Per Kg': { value: 4.50, unit: 'USD' } } },
+  { name: 'Cast Bronze (C954)', category: 'N - Non-ferrous', subCategory: 'Cast Bronze', properties: { 'Density': { value: 7.45, unit: 'g/cm³' }, 'Cost Per Kg': { value: 8.20, unit: 'USD' } } }
+];
+
+export const DEFAULT_CASTING_MACHINES: Partial<Machine>[] = [
+  { name: 'Induction Melting Furnace', brand: 'Inductotherm', model: 'Meltminder 300T', hourlyRate: 85, machineType: 'Melting Tool', xAxis: 0, yAxis: 0, zAxis: 0, powerKw: 350, additionalAxis: 'none' },
+  { name: 'High Pressure Die Casting Machine', brand: 'Bühler', model: 'Carat 400', hourlyRate: 150, machineType: 'Die Casting Press', xAxis: 0, yAxis: 0, zAxis: 0, powerKw: 110, additionalAxis: 'none' },
+  { name: 'Automatic Sand Molding Line', brand: 'DISA', model: 'DISAMATIC D3', hourlyRate: 95, machineType: 'Molding Line', xAxis: 0, yAxis: 0, zAxis: 0, powerKw: 75, additionalAxis: 'none' }
+];
+
+export const DEFAULT_CASTING_PROCESSES: Partial<Process>[] = [
+  { name: 'Sand Casting Process', group: 'Casting Molding', compatibleMachineTypes: ['Molding Line'], parameters: [{ name: 'moldingCycleTimeMin', label: 'Molding Cycle Time', unit: 'Min' }, { name: 'yieldRate', label: 'Casting Yield Rate', unit: '%' }] },
+  { name: 'Die Casting Process', group: 'Press Casting', compatibleMachineTypes: ['Die Casting Press'], parameters: [{ name: 'moldingCycleTimeMin', label: 'Injection Cycle Time', unit: 'Min' }, { name: 'yieldRate', label: 'Casting Yield Rate', unit: '%' }] }
+];
+
+export const DEFAULT_CASTING_TOOLS: Partial<Tool>[] = [
+  { name: 'Molding Box Pattern', brand: 'Sinto', model: 'SP-10', toolType: 'Patterns', material: 'Aluminum', diameter: 0, cornerRadius: null, numberOfTeeth: null, arborOrInsert: 'Shank', compatibleMachineTypes: ['Molding Line'], price: 2500, cuttingSpeedVc: null, feedPerTooth: null, speedRpm: null, feedRate: null, estimatedLife: 50000 },
+  { name: 'Die Casting mold set', brand: 'Bühler', model: 'DCM-V', toolType: 'Dies', material: 'H13 Tool Steel', diameter: 0, cornerRadius: null, numberOfTeeth: null, arborOrInsert: 'Insert', compatibleMachineTypes: ['Die Casting Press'], price: 35000, cuttingSpeedVc: null, feedPerTooth: null, speedRpm: null, feedRate: null, estimatedLife: 100000 }
+];
+
+// --- FORGING SEED DATA DEFAULTS ---
+export const DEFAULT_FORGING_MATERIALS: Partial<MaterialMasterItem>[] = [
+  { name: 'AISI 1045 Carbon Steel', category: 'P - Steel', subCategory: 'Forging Carbon Steel', properties: { 'Density': { value: 7.85, unit: 'g/cm³' }, 'Cost Per Kg': { value: 1.95, unit: 'USD' } } },
+  { name: 'AISI 4140 Alloy Steel', category: 'P - Steel', subCategory: 'Forging Alloy Steel', properties: { 'Density': { value: 7.85, unit: 'g/cm³' }, 'Cost Per Kg': { value: 2.80, unit: 'USD' } } },
+  { name: 'AISI 4340 Nickel-Moly Steel', category: 'P - Steel', subCategory: 'Forging Alloy Steel', properties: { 'Density': { value: 7.85, unit: 'g/cm³' }, 'Cost Per Kg': { value: 3.50, unit: 'USD' } } },
+  { name: 'AISI 316L Stainless Steel', category: 'M - Stainless Steel', subCategory: 'Forging Stainless Steel', properties: { 'Density': { value: 8.0, unit: 'g/cm³' }, 'Cost Per Kg': { value: 6.20, unit: 'USD' } } },
+  { name: 'Aluminum 6061-T6', category: 'N - Non-ferrous', subCategory: 'Forging Aluminum', properties: { 'Density': { value: 2.7, unit: 'g/cm³' }, 'Cost Per Kg': { value: 4.80, unit: 'USD' } } },
+  { name: 'Titanium Ti-6Al-4V', category: 'S - Superalloys & Titanium', subCategory: 'Forging Titanium', properties: { 'Density': { value: 4.43, unit: 'g/cm³' }, 'Cost Per Kg': { value: 26.00, unit: 'USD' } } }
+];
+
+export const DEFAULT_FORGING_MACHINES: Partial<Machine>[] = [
+  { name: '1600T Hot Forging Press', brand: 'Farina', model: 'HF-1600', hourlyRate: 160, machineType: 'Forging Press', xAxis: 0, yAxis: 0, zAxis: 0, powerKw: 220, additionalAxis: 'none' },
+  { name: 'Gas Fired Rotary Hearth Furnace', brand: 'Inductotherm', model: 'RHF-400', hourlyRate: 80, machineType: 'Heating Furnace', xAxis: 0, yAxis: 0, zAxis: 0, powerKw: 400, additionalAxis: 'none' },
+  { name: 'Shearing Machine', brand: 'Fimi', model: 'SM-500', hourlyRate: 50, machineType: 'Shearing', xAxis: 0, yAxis: 0, zAxis: 0, powerKw: 45, additionalAxis: 'none' }
+];
+
+export const DEFAULT_FORGING_PROCESSES: Partial<Process>[] = [
+  { name: 'Closed Die Forging Process', group: 'Forging Operations', compatibleMachineTypes: ['Forging Press'], parameters: [{ name: 'forgingCycleTimeSec', label: 'Forge Stroke Cycle', unit: 'Sec' }, { name: 'yieldRate', label: 'Material Yield Rate', unit: '%' }] },
+  { name: 'Induction Heating Process', group: 'Forging Preparation', compatibleMachineTypes: ['Heating Furnace'], parameters: [{ name: 'heatingEnergyCostPerKg', label: 'Heating Energy Cost', unit: 'USD/kg' }] }
+];
+
+export const DEFAULT_FORGING_TOOLS: Partial<Tool>[] = [
+  { name: 'Closed Die Tool Block Set', brand: 'Farina', model: 'DB-1600SR', toolType: 'Dies', material: 'H13 Forged Tool Steel', diameter: 0, cornerRadius: null, numberOfTeeth: null, arborOrInsert: 'Insert', compatibleMachineTypes: ['Forging Press'], price: 18500, cuttingSpeedVc: null, feedPerTooth: null, speedRpm: null, feedRate: null, estimatedLife: 15000 },
+  { name: 'Shearing Blades Set', brand: 'Fimi', model: 'SB-500', toolType: 'Cutting Blades', material: 'D2 Tool Steel', diameter: 0, cornerRadius: null, numberOfTeeth: null, arborOrInsert: 'Arbor', compatibleMachineTypes: ['Shearing'], price: 2000, cuttingSpeedVc: null, feedPerTooth: null, speedRpm: null, feedRate: null, estimatedLife: 50000 }
+];

@@ -1,16 +1,23 @@
-name = "costinghub-app"
-compatibility_date = "2026-06-14"
+name = "costinghub"
+compatibility_date = "2024-06-21"
+pages_build_output_dir = "dist"
 
-[build]
-command = "npm run build"
-cwd = "./"
+[vars]
+# Add your environment variables here in the Cloudflare Dashboard
+# GEMINI_API_KEY = "your-key-here"
+# DATABASE_URL = "your-supabase-url"
 
-[assets]
-directory = "./dist"
+[observability]
+enabled = false
+head_sampling_rate = 1
 
-[env.production]
-name = "costinghub-app-production"
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
 
-[env.production.vars]
-ENVIRONMENT = "production"
-
+[observability.traces]
+enabled = false
+persist = true
+head_sampling_rate = 1

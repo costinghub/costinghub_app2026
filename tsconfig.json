@@ -2,10 +2,9 @@
   "compilerOptions": {
     "target": "ES2022",
     "useDefineForClassFields": true,
-    "lib": ["DOM", "DOM.Iterable", "ES2022", "WebWorker"],
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "module": "ESNext",
     "skipLibCheck": true,
-    "types": ["@cloudflare/workers-types"],
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -26,6 +25,7 @@
     "index.tsx",
     "constants.ts",
     "db.ts",
+    "server.ts",
     "types.ts",
     "components/**/*",
     "layouts/**/*",

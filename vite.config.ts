@@ -22,23 +22,10 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    build: {
-      outDir: 'dist',
-      sourcemap: false,
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            vendor: ['react', 'react-dom'],
-          },
-        },
-      },
-    },
     define: {
       // Explicitly define which env vars are available on the client.
       'process.env.GEMINI_API_KEY': JSON.stringify(apiKey),
       'process.env.API_KEY': JSON.stringify(apiKey),
-      'process.env.SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL || env.SUPABASE_URL),
-      'process.env.SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY),
     },
   };
 });

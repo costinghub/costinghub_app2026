@@ -1,5 +1,5 @@
 {
   "name": "CostingHub",
-  "description": "A client-side manufacturing cost calculator optimized for Vercel. Features local storage data persistence, material/machine master management, and Gemini-powered process analysis.",
+  "description": "All Costs. One Hub. The ultimate platform for production teams to calculate machining costs, estimate cycle times, manage material libraries, and generate professional quotes.",
   "requestFramePermissions": []
 }
