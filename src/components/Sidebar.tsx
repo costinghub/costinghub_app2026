@@ -81,19 +81,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, user,
                 {currentModule === 'machining' && (
                   <>
                     <NavItem label="Machining Calcs" view="calculations" icon={Icons.Calculations} {...{ currentView, onNavigate }} />
-                    <NavItem label="New Machining Calc" view="newEstimation" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5v14"/></svg>} {...{ currentView, onNavigate }} />
+                    <NavItem label="New Machining Calc" view="calculator" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5v14"/></svg>} {...{ currentView, onNavigate }} />
                   </>
                 )}
                 {currentModule === 'casting' && (
                   <>
                     <NavItem label="Casting Calcs" view="calculations" icon={Icons.Calculations} {...{ currentView, onNavigate }} />
-                    <NavItem label="New Casting Calc" view="newEstimation" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v8M8 12h8" /></svg>} {...{ currentView, onNavigate }} />
+                    <NavItem label="New Casting Calc" view="castingCalculator" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v8M8 12h8" /></svg>} {...{ currentView, onNavigate }} />
                   </>
                 )}
                 {currentModule === 'forging' && (
                   <>
                     <NavItem label="Forging Calcs" view="calculations" icon={Icons.Calculations} {...{ currentView, onNavigate }} />
-                    <NavItem label="New Forging Calc" view="newEstimation" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 5 4 4"/><path d="M22 2s-3 3-5 5l-7 7s-1 2-2 3c-1 1-2 2-3 2l-3 1 1-3c0-1 1-2 2-3 1-1 3-2 3-2l7-7s3-5 5-5z"/></svg>} {...{ currentView, onNavigate }} />
+                    <NavItem label="New Forging Calc" view="forgingCalculator" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 5 4 4"/><path d="M22 2s-3 3-5 5l-7 7s-1 2-2 3c-1 1-2 2-3 2l-3 1 1-3c0-1 1-2 2-3 1-1 3-2 3-2l7-7s3-5 5-5z"/></svg>} {...{ currentView, onNavigate }} />
                   </>
                 )}
 

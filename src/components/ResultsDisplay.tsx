@@ -3,9 +3,6 @@ import React from 'react';
 import type { MachiningResult, MarkupCosts, Markups } from '../types';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
-import { CastingSchematics } from './CastingSchematics';
-import { ForgingSchematics } from './ForgingSchematics';
-import { MachiningSchematics } from './MachiningSchematics';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -79,38 +76,29 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, currenc
 
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-primary mb-2">Metallic Alloy & Weight Run</h3>
-                  <div className="bg-surface rounded-lg p-2 space-y-1">
-                     <ResultRow label="Poured Molten Metal Weight" value={`${formatNumber(castRes.pouredWeightKg, 3)} kg`} className="bg-background/50"/>
-                     <ResultRow label="Risers & Gating Scrap Weight" value={`${formatNumber(castRes.scrapWeightKg, 3)} kg`} className=""/>
-                     <ResultRow label="Raw Metallic Ore Cost / Part" value={formatCurrency(castRes.rawMaterialPartCost, currency)} className="bg-background/50 font-semibold" />
-                     <ResultRow label="Solid Scrap Return Credit / Part" value={`-${formatCurrency(castRes.scrapCreditPerPart, currency)}`} className="text-green-600 font-mono bg-background/50"/>
-                     <ResultRow label="Net Metallic Alloy Cost / Part" value={formatCurrency(castRes.netMaterialCostPerPart, currency)} className="bg-primary/5 font-extrabold" />
-                  </div>
-                </div>
+        <div>
+          <h3 className="text-lg font-semibold text-primary mb-2">Metallic Alloy & Weight Run</h3>
+          <div className="bg-surface rounded-lg p-2 space-y-1">
+             <ResultRow label="Poured Molten Metal Weight" value={`${formatNumber(castRes.pouredWeightKg, 3)} kg`} className="bg-background/50"/>
+             <ResultRow label="Risers & Gating Scrap Weight" value={`${formatNumber(castRes.scrapWeightKg, 3)} kg`} className=""/>
+             <ResultRow label="Raw Metallic Ore Cost / Part" value={formatCurrency(castRes.rawMaterialPartCost, currency)} className="bg-background/50 font-semibold" />
+             <ResultRow label="Solid Scrap Return Credit / Part" value={`-${formatCurrency(castRes.scrapCreditPerPart, currency)}`} className="text-green-600 font-mono bg-background/50"/>
+             <ResultRow label="Net Metallic Alloy Cost / Part" value={formatCurrency(castRes.netMaterialCostPerPart, currency)} className="bg-primary/5 font-extrabold" />
+          </div>
+        </div>
 
-                <div>
-                  <h3 className="text-lg font-semibold text-primary mb-2">Foundry Processing Routings</h3>
-                  <div className="bg-surface rounded-lg p-2 space-y-1">
-                     <ResultRow label="Melting Electricity & Energy" value={formatCurrency(castRes.meltingCostPerPart, currency)} className="bg-background/50"/>
-                     <ResultRow label="Molding Station Labor" value={formatCurrency(castRes.moldingCostPerPart, currency)} className=""/>
-                     <ResultRow label="Metal Pouring & Casting Team" value={formatCurrency(castRes.pouringCostPerPart, currency)} className="bg-background/50"/>
-                     {castRes.coreCostPerPart > 0 && (
-                       <ResultRow label="Sand Core Core-Making" value={formatCurrency(castRes.coreCostPerPart, currency)} className=""/>
-                     )}
-                     <ResultRow label="Shakeout, Fettling & Finishing" value={formatCurrency(castRes.fettlingCostPerPart, currency)} className="bg-background/50"/>
-                     <ResultRow label="Amortized Pattern/Die Tooling" value={formatCurrency(castRes.toolingAmortizedCostPerPart, currency)} className=""/>
-                  </div>
-                </div>
-            </div>
-
-            <div className="bg-slate-900 rounded-xl overflow-hidden flex flex-col items-center justify-center p-6 border border-border/50 min-h-[300px]">
-                <span className="text-[10px] font-black uppercase text-indigo-400 absolute top-4 left-4 tracking-widest">Foundry Process Visual</span>
-                <CastingSchematics type={castRes.castingProcess || 'Sand Casting'} />
-            </div>
+        <div>
+          <h3 className="text-lg font-semibold text-primary mb-2">Foundry Processing Routings</h3>
+          <div className="bg-surface rounded-lg p-2 space-y-1">
+             <ResultRow label="Melting Electricity & Energy" value={formatCurrency(castRes.meltingCostPerPart, currency)} className="bg-background/50"/>
+             <ResultRow label="Molding Station Labor" value={formatCurrency(castRes.moldingCostPerPart, currency)} className=""/>
+             <ResultRow label="Metal Pouring & Casting Team" value={formatCurrency(castRes.pouringCostPerPart, currency)} className="bg-background/50"/>
+             {castRes.coreCostPerPart > 0 && (
+               <ResultRow label="Sand Core Core-Making" value={formatCurrency(castRes.coreCostPerPart, currency)} className=""/>
+             )}
+             <ResultRow label="Shakeout, Fettling & Finishing" value={formatCurrency(castRes.fettlingCostPerPart, currency)} className="bg-background/50"/>
+             <ResultRow label="Amortized Pattern/Die Tooling" value={formatCurrency(castRes.toolingAmortizedCostPerPart, currency)} className=""/>
+          </div>
         </div>
 
         <div>
@@ -251,39 +239,30 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, currenc
 
     return (
       <div className="space-y-6 animate-fade-in">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-primary mb-2">Billet Spec & Mass Yield</h3>
-                  <div className="bg-surface rounded-lg p-2 space-y-1">
-                     <ResultRow label="Total Input Billet Weight" value={`${formatNumber(forgeRes.rawBilletWeightKg, 3)} kg`} className="bg-background/50"/>
-                     <ResultRow label="Oxide Scale Evaporation Loss" value={`${formatNumber(forgeRes.scaleLossWeightKg, 3)} kg`} className=""/>
-                     <ResultRow label="Flash & Trimming Scrap Weight" value={`${formatNumber(forgeRes.flashScrapWeightKg, 3)} kg`} className="bg-background/50"/>
-                     <ResultRow label="Raw Billet Base Cost" value={formatCurrency(forgeRes.rawMaterialBilletCost, currency)} className="font-semibold" />
-                     <ResultRow label="Trimmings Scrap Credit Return" value={`-${formatCurrency(forgeRes.scrapCreditPerPart, currency)}`} className="text-green-600 font-mono bg-background/50"/>
-                     <ResultRow label="Net Billet Metal Cost" value={formatCurrency(forgeRes.netMaterialCostPerPart, currency)} className="bg-primary/5 font-extrabold" />
-                  </div>
-                </div>
+        <div>
+          <h3 className="text-lg font-semibold text-primary mb-2">Billet Spec & Mass Yield</h3>
+          <div className="bg-surface rounded-lg p-2 space-y-1">
+             <ResultRow label="Total Input Billet Weight" value={`${formatNumber(forgeRes.rawBilletWeightKg, 3)} kg`} className="bg-background/50"/>
+             <ResultRow label="Oxide Scale Evaporation Loss" value={`${formatNumber(forgeRes.scaleLossWeightKg, 3)} kg`} className=""/>
+             <ResultRow label="Flash & Trimming Scrap Weight" value={`${formatNumber(forgeRes.flashScrapWeightKg, 3)} kg`} className="bg-background/50"/>
+             <ResultRow label="Raw Billet Base Cost" value={formatCurrency(forgeRes.rawMaterialBilletCost, currency)} className="font-semibold" />
+             <ResultRow label="Trimmings Scrap Credit Return" value={`-${formatCurrency(forgeRes.scrapCreditPerPart, currency)}`} className="text-green-600 font-mono bg-background/50"/>
+             <ResultRow label="Net Billet Metal Cost" value={formatCurrency(forgeRes.netMaterialCostPerPart, currency)} className="bg-primary/5 font-extrabold" />
+          </div>
+        </div>
 
-                <div>
-                  <h3 className="text-lg font-semibold text-primary mb-2">Operational Press & Cycle Routings</h3>
-                  <div className="bg-surface rounded-lg p-2 space-y-1">
-                     <ResultRow label="Billet Furnace Heating (Gas/Electric)" value={formatCurrency(forgeRes.heatingCostPerPart, currency)} className="bg-background/50"/>
-                     <ResultRow label="Billet Shearing / Cutting Op" value={formatCurrency(forgeRes.shearingCostPerPart, currency)} className=""/>
-                     <ResultRow label="Primary Forging Press / Hammer Strike" value={formatCurrency(forgeRes.forgingPressCostPerPart, currency)} className="bg-background/50"/>
-                     <ResultRow label="Residual Flash Trimming & Piercing" value={formatCurrency(forgeRes.trimmingCostPerPart, currency)} className=""/>
-                     <ResultRow label="Amortized Die Set Tooling" value={formatCurrency(forgeRes.toolingAmortizedCostPerPart, currency)} className="bg-background/50"/>
-                     {surfUnit > 0 && (
-                       <ResultRow label="Surface Chemical/Blast Coatings" value={formatCurrency(surfUnit, currency)} className=""/>
-                     )}
-                  </div>
-                </div>
-            </div>
-
-            <div className="bg-slate-900 rounded-xl overflow-hidden flex flex-col items-center justify-center p-6 border border-border/50 min-h-[300px]">
-                <span className="text-[10px] font-black uppercase text-rose-400 absolute top-4 left-4 tracking-widest">Forging Schematic</span>
-                <ForgingSchematics type={forgeRes.forgingType || 'Closed Die Forging'} />
-            </div>
+        <div>
+          <h3 className="text-lg font-semibold text-primary mb-2">Operational Press & Cycle Routings</h3>
+          <div className="bg-surface rounded-lg p-2 space-y-1">
+             <ResultRow label="Billet Furnace Heating (Gas/Electric)" value={formatCurrency(forgeRes.heatingCostPerPart, currency)} className="bg-background/50"/>
+             <ResultRow label="Billet Shearing / Cutting Op" value={formatCurrency(forgeRes.shearingCostPerPart, currency)} className=""/>
+             <ResultRow label="Primary Forging Press / Hammer Strike" value={formatCurrency(forgeRes.forgingPressCostPerPart, currency)} className="bg-background/50"/>
+             <ResultRow label="Residual Flash Trimming & Piercing" value={formatCurrency(forgeRes.trimmingCostPerPart, currency)} className=""/>
+             <ResultRow label="Amortized Die Set Tooling" value={formatCurrency(forgeRes.toolingAmortizedCostPerPart, currency)} className="bg-background/50"/>
+             {surfUnit > 0 && (
+               <ResultRow label="Surface Chemical/Blast Coatings" value={formatCurrency(surfUnit, currency)} className=""/>
+             )}
+          </div>
         </div>
 
         <div>
@@ -416,39 +395,30 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, currenc
   
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold text-primary mb-2">Material & Weight</h3>
-                <div className="bg-surface rounded-lg p-2 space-y-1">
-                   <ResultRow label="Raw Material Weight" value={`${formatNumber(results.rawMaterialWeightKg, 3)} kg`} className="bg-background/50"/>
-                   <ResultRow label="Finished Part Weight" value={`${formatNumber(results.finishedPartWeightKg, 3)} kg`} className=""/>
-                   <ResultRow label="Raw Material Cost / Part" value={formatCurrency(results.rawMaterialPartCost, currency)} className="bg-background/50 font-semibold" />
-                   {!isPdfMode && (
-                     <ResultRow label="Raw Material Cost (Total Batch)" value={formatCurrency(results.materialCost, currency)} className=""/>
-                   )}
-                   {isPdfMode && (
-                     <ResultRow label="Raw Material Cost" value={formatCurrency(results.rawMaterialPartCost, currency)} className=""/>
-                   )}
-                </div>
-              </div>
+      <div>
+        <h3 className="text-lg font-semibold text-primary mb-2">Material & Weight</h3>
+        <div className="bg-surface rounded-lg p-2 space-y-1">
+           <ResultRow label="Raw Material Weight" value={`${formatNumber(results.rawMaterialWeightKg, 3)} kg`} className="bg-background/50"/>
+           <ResultRow label="Finished Part Weight" value={`${formatNumber(results.finishedPartWeightKg, 3)} kg`} className=""/>
+           <ResultRow label="Raw Material Cost / Part" value={formatCurrency(results.rawMaterialPartCost, currency)} className="bg-background/50 font-semibold" />
+           {!isPdfMode && (
+             <ResultRow label="Raw Material Cost (Total Batch)" value={formatCurrency(results.materialCost, currency)} className=""/>
+           )}
+           {isPdfMode && (
+             <ResultRow label="Raw Material Cost" value={formatCurrency(results.rawMaterialPartCost, currency)} className=""/>
+           )}
+        </div>
+      </div>
 
-              <div>
-                <h3 className="text-lg font-semibold text-primary mb-2">Time Analysis</h3>
-                <div className="bg-surface rounded-lg p-2 space-y-1">
-                   <ResultRow label="Total Cutting Time" value={`${formatNumber(results.totalCuttingTimeMin)} min`} className="bg-background/50"/>
-                   <ResultRow label="Total Setup Time" value={`${formatNumber(results.totalSetupTimeMin)} min`} className=""/>
-                   <ResultRow label="Total Tool Change Time" value={`${formatNumber(results.totalToolChangeTimeMin)} min`} className="bg-background/50"/>
-                   <ResultRow label="Cycle Time / Part" value={`${formatNumber(results.cycleTimePerPartMin)} min`} className=""/>
-                   <ResultRow label="Total Machine Time" value={`${formatNumber(results.totalMachineTimeHours)} hrs`} className="bg-background/50"/>
-                </div>
-              </div>
-          </div>
-
-          <div className="bg-slate-900 rounded-xl overflow-hidden flex flex-col items-center justify-center p-6 border border-border/50 min-h-[300px]">
-              <span className="text-[10px] font-black uppercase text-emerald-400 absolute top-4 left-4 tracking-widest">CNC Operation Visual</span>
-              <MachiningSchematics type={results.setupBreakdown?.[0]?.machineName || 'CNC Mill'} />
-          </div>
+      <div>
+        <h3 className="text-lg font-semibold text-primary mb-2">Time Analysis</h3>
+        <div className="bg-surface rounded-lg p-2 space-y-1">
+           <ResultRow label="Total Cutting Time" value={`${formatNumber(results.totalCuttingTimeMin)} min`} className="bg-background/50"/>
+           <ResultRow label="Total Setup Time" value={`${formatNumber(results.totalSetupTimeMin)} min`} className=""/>
+           <ResultRow label="Total Tool Change Time" value={`${formatNumber(results.totalToolChangeTimeMin)} min`} className="bg-background/50"/>
+           <ResultRow label="Cycle Time / Part" value={`${formatNumber(results.cycleTimePerPartMin)} min`} className=""/>
+           <ResultRow label="Total Machine Time" value={`${formatNumber(results.totalMachineTimeHours)} hrs`} className="bg-background/50"/>
+        </div>
       </div>
 
       {results.setupBreakdown && results.setupBreakdown.length > 0 ? (
