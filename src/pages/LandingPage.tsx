@@ -16,8 +16,7 @@ import {
   Flame,
   Wrench,
   Activity,
-  Hammer,
-  ShieldCheck
+  Hammer
 } from 'lucide-react';
 
 interface MaterialSnippet {
@@ -96,22 +95,6 @@ const MATERIAL_PRESETS: MaterialSnippet[] = [
   }
 ];
 
-const FORGING_TYPES = [
-  { id: 'Closed Die Forging', name: 'Closed Die Forging', icon: Hammer, color: 'rose', description: 'Matched dies for high precision and complexity.' },
-  { id: 'Open Die Forging', name: 'Open Die Forging', icon: Activity, color: 'amber', description: 'Flat or simple dies for large, robust components.' },
-  { id: 'Ring Rolling', name: 'Ring Rolling', icon: Layers, color: 'blue', description: 'Specialized process for seamless circular rings.' },
-  { id: 'Warm/Cold Forging', name: 'Warm/Cold Forging', icon: Zap, color: 'emerald', description: 'Near-net shape with superior surface finish.' },
-];
-
-const CASTING_TYPES = [
-  { id: 'Sand Casting', name: 'Sand Casting', icon: Flame, color: 'orange', description: 'Silica-sand molds for all sizes.' },
-  { id: 'HPDC', name: 'HPDC (High Pressure)', icon: Cpu, color: 'indigo', description: 'High-speed injection for precision parts.' },
-  { id: 'LPDC', name: 'LPDC (Low Pressure)', icon: ShieldCheck, color: 'blue', description: 'Controlled filling for safety parts.' },
-  { id: 'GDC', name: 'GDC (Gravity Die)', icon: Database, color: 'slate', description: 'Gravity metallic mold structural casting.' },
-  { id: 'Investment Casting', name: 'Investment Casting', icon: Sparkles, color: 'teal', description: 'Lost-wax process for intricate detail.' },
-  { id: 'Shell Moulding', name: 'Shell Moulding', icon: Layers, color: 'amber', description: 'High-precision resin sand shell molds.' },
-];
-
 export const LandingPage: React.FC<LandingPageProps> = ({ 
   onNavigate, 
   user,
@@ -122,7 +105,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   processesCount = 0,
   toolsCount = 0,
 }) => {
-  const [activeTab, setActiveTab] = useState<'machining' | 'casting' | 'forging'>('machining');
   const isPaidUser = (user.plan_name || 'Free').toLowerCase() !== 'free';
   const isEnterprise = (user.plan_name || 'Free').toLowerCase().includes('enterprise');
   const avatarUrl = session?.user?.user_metadata?.avatar_url;
@@ -184,102 +166,73 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           {/* Ambient accent background blur */}
           <div className="absolute top-0 left-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
           
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border/50 pb-4 mb-6">
-            <h2 className="text-sm font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-2">
-              <Zap className="w-4.5 h-4.5 text-amber-500 animate-pulse" />
-              Module Launchpad
-            </h2>
-            
-            <div className="flex bg-background p-1 rounded-xl border border-border">
-              {(['machining', 'casting', 'forging'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all uppercase tracking-wider ${
-                    activeTab === tab 
-                      ? 'bg-primary text-white shadow-sm' 
-                      : 'text-text-muted hover:text-text-primary'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
+          <h2 className="text-sm font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest border-b border-border/50 pb-2.5 mb-4 flex items-center gap-2">
+            <Zap className="w-4.5 h-4.5 text-amber-500 animate-pulse" />
+            Module Launchpad
+          </h2>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              
+              {/* Button 1: Start New Estimation */}
+              <button 
+                id="btn-launch-estimation"
+                onClick={() => onNavigate('calculator')}
+                className="group relative p-4 bg-gradient-to-br from-emerald-500/10 to-transparent hover:from-emerald-500 hover:to-teal-600 border border-emerald-500/30 hover:border-emerald-600 rounded-xl text-left transition-all duration-300 select-none cursor-pointer flex flex-col justify-between shadow-xs hover:shadow-lg hover:-translate-y-1"
+              >
+                <div className="p-2 bg-emerald-500/10 group-hover:bg-white/20 rounded-lg max-w-max text-emerald-600 dark:text-emerald-400 group-hover:text-white mb-6">
+                  <Calculator className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xs text-emerald-955 group-hover:text-white transition-colors">
+                    Machining Costing
+                  </h3>
+                  <p className="text-[10px] text-text-secondary group-hover:text-white/80 transition-colors mt-1 leading-normal">
+                    Initiate live cycle time and cost checks.
+                  </p>
+                </div>
+              </button>
+
+              {/* Button 2: Casting Estimator */}
+              <button 
+                id="btn-launch-casting"
+                onClick={() => onNavigate('castingCalculator')}
+                className="group relative p-4 bg-gradient-to-br from-indigo-500/10 to-transparent hover:from-indigo-600 hover:to-purple-700 border border-indigo-500/30 hover:border-indigo-600 rounded-xl text-left transition-all duration-300 select-none cursor-pointer flex flex-col justify-between shadow-xs hover:shadow-lg hover:-translate-y-1"
+              >
+                <div className="p-2 bg-indigo-500/10 group-hover:bg-white/20 rounded-lg max-w-max text-indigo-600 dark:text-indigo-400 group-hover:text-white mb-6">
+                  <Flame className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xs text-indigo-955 group-hover:text-white transition-colors">
+                    Casting Costing
+                  </h3>
+                  <p className="text-[10px] text-text-secondary group-hover:text-white/80 transition-colors mt-1 leading-normal">
+                    Model melt yields, core, and die amortization.
+                  </p>
+                </div>
+              </button>
+
+              {/* Button 3: Forging Estimator */}
+              <button 
+                id="btn-launch-forging"
+                onClick={() => onNavigate('forgingCalculator')}
+                className="group relative p-4 bg-gradient-to-br from-rose-500/10 to-transparent hover:from-rose-500 hover:to-pink-600 border border-rose-500/30 hover:border-rose-600 rounded-xl text-left transition-all duration-300 select-none cursor-pointer flex flex-col justify-between shadow-xs hover:shadow-lg hover:-translate-y-1"
+              >
+                <div className="p-2 bg-rose-500/10 group-hover:bg-white/20 rounded-lg max-w-max text-rose-600 dark:text-rose-400 group-hover:text-white mb-6">
+                  <Hammer className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xs text-rose-955 group-hover:text-white transition-colors">
+                    Forging Costing
+                  </h3>
+                  <p className="text-[10px] text-text-secondary group-hover:text-white/80 transition-colors mt-1 leading-normal">
+                    Model raw billet yields, scale loss, and multi-dies.
+                  </p>
+                </div>
+              </button>
+
+
             </div>
           </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {activeTab === 'machining' && (
-                <button 
-                  id="btn-launch-machining"
-                  onClick={() => onNavigate('calculator')}
-                  className="group relative p-6 bg-gradient-to-br from-emerald-500/10 to-transparent hover:from-emerald-500 hover:to-teal-600 border border-emerald-500/30 hover:border-emerald-600 rounded-2xl text-left transition-all duration-300 select-none cursor-pointer flex flex-col justify-between shadow-xs hover:shadow-lg hover:-translate-y-1 col-span-full md:col-span-2"
-                >
-                  <div className="p-3 bg-emerald-500/10 group-hover:bg-white/20 rounded-xl max-w-max text-emerald-600 dark:text-emerald-400 group-hover:text-white mb-8">
-                    <Calculator className="w-8 h-8" />
-                  </div>
-                  <div>
-                    <h3 className="font-extrabold text-xl text-emerald-950 group-hover:text-white transition-colors">
-                      Machining Precision Costing
-                    </h3>
-                    <p className="text-xs text-text-secondary group-hover:text-white/80 transition-colors mt-2 leading-relaxed max-w-md">
-                      Detailed cycle time modeling for CNC vertical and horizontal milling, turning centers, and multi-axis drilling operations.
-                    </p>
-                    <div className="mt-4 flex items-center text-xs font-black text-emerald-600 group-hover:text-white uppercase tracking-widest">
-                      Launch Module <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </div>
-                </button>
-              )}
-
-              {activeTab === 'forging' && FORGING_TYPES.map((type) => (
-                <button 
-                  key={type.id}
-                  id={`btn-launch-forging-${type.id}`}
-                  onClick={() => {
-                    localStorage.setItem('costinghub_initial_forging_type', type.id);
-                    onNavigate('forgingCalculator');
-                  }}
-                  className="group relative p-5 bg-gradient-to-br from-rose-500/10 to-transparent hover:from-rose-500 hover:to-pink-600 border border-rose-500/30 hover:border-rose-600 rounded-xl text-left transition-all duration-300 select-none cursor-pointer flex flex-col justify-between shadow-xs hover:shadow-lg hover:-translate-y-1"
-                >
-                  <div className="p-2.5 bg-rose-500/10 group-hover:bg-white/20 rounded-lg max-w-max text-rose-600 dark:text-rose-400 group-hover:text-white mb-6">
-                    <type.icon className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-xs text-rose-955 group-hover:text-white transition-colors uppercase tracking-tight">
-                      {type.name}
-                    </h3>
-                    <p className="text-[10px] text-text-secondary group-hover:text-white/80 transition-colors mt-1.5 leading-normal font-medium">
-                      {type.description}
-                    </p>
-                  </div>
-                </button>
-              ))}
-
-              {activeTab === 'casting' && CASTING_TYPES.map((type) => (
-                <button 
-                  key={type.id}
-                  id={`btn-launch-casting-${type.id}`}
-                  onClick={() => {
-                    localStorage.setItem('costinghub_initial_casting_type', type.id);
-                    onNavigate('castingCalculator');
-                  }}
-                  className="group relative p-5 bg-gradient-to-br from-indigo-500/10 to-transparent hover:from-indigo-600 hover:to-purple-700 border border-indigo-500/30 hover:border-indigo-600 rounded-xl text-left transition-all duration-300 select-none cursor-pointer flex flex-col justify-between shadow-xs hover:shadow-lg hover:-translate-y-1"
-                >
-                  <div className="p-2.5 bg-indigo-500/10 group-hover:bg-white/20 rounded-lg max-w-max text-indigo-600 dark:text-indigo-400 group-hover:text-white mb-6">
-                    <type.icon className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-xs text-indigo-955 group-hover:text-white transition-colors uppercase tracking-tight">
-                      {type.name}
-                    </h3>
-                    <p className="text-[10px] text-text-secondary group-hover:text-white/80 transition-colors mt-1.5 leading-normal font-medium">
-                      {type.description}
-                    </p>
-                  </div>
-                </button>
-              ))}
-          </div>
-      </div>
 
           <div className="mt-12 pt-8 border-t border-border/50 bg-surface/30 -mx-6 px-6 pb-8">
              <div className="max-w-4xl mx-auto">

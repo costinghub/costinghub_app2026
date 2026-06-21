@@ -3,7 +3,6 @@ import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { DisplayField } from '../components/ui/DisplayField';
-import { MachiningSchematics } from '../components/MachiningSchematics';
 import type { Tool } from '../types';
 
 interface FaceMillingCalculatorPageProps {
@@ -181,17 +180,7 @@ export const FaceMillingCalculatorPage: React.FC<FaceMillingCalculatorPageProps>
                 </div>
 
                 {/* Outputs Column */}
-                <div className="space-y-6">
-                    <Card className="!p-0 overflow-hidden bg-gradient-to-br from-indigo-500/10 to-transparent border-indigo-500/20 relative">
-                        <div className="p-5">
-                            <span className="text-[10px] font-black uppercase text-indigo-600 block mb-0.5 tracking-wider">Milling Schematic</span>
-                            <h3 className="font-bold text-base text-text-primary">Process Visualization</h3>
-                        </div>
-                        <div className="h-44 bg-slate-900 flex justify-center items-center relative select-none">
-                            <MachiningSchematics type="CNC Mill" />
-                        </div>
-                    </Card>
-
+                <div>
                      <Card>
                         <h2 className="text-2xl font-semibold text-primary border-b border-border pb-3 mb-6">Results</h2>
                         {outputs && selectedTool ? (

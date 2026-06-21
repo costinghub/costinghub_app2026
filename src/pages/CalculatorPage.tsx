@@ -13,9 +13,7 @@ import { Button } from '../components/ui/Button';
 import { calculateMachiningCosts, calculateBilletWeight, calculateOperationTime } from '../services/calculationService';
 // FIX: Import INITIAL_INPUT from constants file.
 import { RAW_MATERIAL_PROCESSES, BILLET_SHAPES, MACHINE_TYPES, CURRENCY_CONVERSION_RATES_TO_USD, ALL_CURRENCIES, SUPER_ADMIN_EMAILS, INITIAL_INPUT } from '../constants';
-import { MachiningSchematics } from '../components/MachiningSchematics';
 import { OperationModal } from '../components/OperationModal';
-import { CalculationHeader } from '../components/CalculationHeader';
 import { DisplayField } from '../components/ui/DisplayField';
 import { CloseIcon } from '../components/ui/CloseIcon';
 
@@ -693,7 +691,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({ user, materials,
     }
   };
   
-  const handleSaveDraftClick = useCallback(() => {
+  const handleSaveDraftClick = () => {
     const draftCalculation: Calculation = {
       id: formData.id,
       name: formData.partName || 'Unnamed Part',
@@ -707,21 +705,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({ user, materials,
       revision_number: existingCalculation ? revisionNumberRef.current : null,
     };
     onSaveDraft(draftCalculation);
-  }, [formData, user.id, existingCalculation, onSaveDraft]);
-
-  // Keyboard Shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+S to Save Draft
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        handleSaveDraftClick();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSaveDraftClick]);
+  };
   
   const { rawMaterialCostPerPart, machiningCostPerPart, toolCostPerPart, surfaceTreatmentCostPerPart, totalCostPerPart } = useMemo(() => {
     const results = calculateMachiningCosts(formData, machines, processes, tools, regionCosts);
@@ -887,33 +871,39 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({ user, materials,
                 isSuperAdmin={isSuperAdmin}
             />
         )}
-        <div className="flex justify-between items-center mb-6 no-print">
-            <Button type="button" variant="secondary" onClick={onBack} size="sm">
-                ← Calculations Dashboard
+        <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <Button variant="secondary" onClick={onBack}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Calculations
             </Button>
-            <div className="flex gap-2">
-                <Button type="button" onClick={() => onNavigate('castingCalculator')} variant="outline" size="sm">
-                    Switch to Casting
-                </Button>
-                <Button type="button" onClick={() => setIsTemplateModalOpen(true)} variant="outline" size="sm">
+            
+            <div className="flex items-center space-x-3 w-full sm:w-auto">
+                {templates.length > 0 && (
+                    <div className="flex-1 sm:flex-none">
+                        <select 
+                            className="bg-surface border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary w-full"
+                            onChange={(e) => handleApplyTemplate(e.target.value)}
+                            value=""
+                        >
+                            <option value="" disabled>Load Template...</option>
+                            {templates.map(tmpl => (
+                                <option key={tmpl.id} value={tmpl.id}>{tmpl.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+                <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setIsTemplateModalOpen(true)}
+                    className="flex-1 sm:flex-none whitespace-nowrap"
+                >
                     Save as Template
-                </Button>
-                <Button type="button" onClick={handleSaveDraftClick} variant="secondary" size="sm">
-                    Save Progress
                 </Button>
             </div>
         </div>
-
-        <CalculationHeader 
-            calcId={formData.calculationNumber}
-            partName={formData.partName}
-            partNumber={formData.partNumber}
-            customer={formData.customerName}
-            created={formData.createdAt}
-            status={existingCalculation?.status === 'final' ? 'Final' : 'Draft'}
-            type="machining"
-        />
-
         <main>
             <form onSubmit={handleSubmit} className="space-y-8">
                 {/* Part Details */}
@@ -1340,40 +1330,6 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({ user, materials,
                     </div>
                 </Card>
 
-                {/* Sticky Action Footer for Mobile / Standard Footer for Desktop */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                    <Card className="!p-0 overflow-hidden bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/20 relative">
-                        <div className="p-5">
-                            <span className="text-[10px] font-black uppercase text-blue-600 block mb-0.5 tracking-wider">Machining Center</span>
-                            <h3 className="font-bold text-base text-text-primary">Process Visualization</h3>
-                        </div>
-                        <div className="h-44 bg-slate-900 flex justify-center items-center relative select-none">
-                            <MachiningSchematics type={formData.setups[0]?.machineId ? (machines.find(m => m.id === formData.setups[0].machineId)?.name || 'CNC Mill') : 'CNC Mill'} />
-                        </div>
-                    </Card>
-
-                    <Card className="!p-0 overflow-hidden border-indigo-500/20 bg-indigo-500/5">
-                        <div className="p-5">
-                            <span className="text-[10px] font-black uppercase text-indigo-600 block mb-0.5 tracking-wider">Efficiency Guide</span>
-                            <h3 className="font-bold text-base text-text-primary">Machine Utilization</h3>
-                        </div>
-                        <div className="p-5 flex flex-col justify-center h-28">
-                             <div className="flex justify-between items-end mb-2">
-                                <span className="text-xs font-bold text-text-secondary uppercase">Average OEE Estimate</span>
-                                <span className="text-2xl font-black text-indigo-600">
-                                   {(formData.setups.reduce((acc, s) => acc + (s.efficiency || 0.85), 0) / (formData.setups.length || 1) * 100).toFixed(0)}%
-                                </span>
-                             </div>
-                             <div className="w-full bg-indigo-200 dark:bg-indigo-900/40 h-2 rounded-full overflow-hidden">
-                                <div 
-                                  className="bg-indigo-600 h-full transition-all duration-1000" 
-                                  style={{ width: `${(formData.setups.reduce((acc, s) => acc + (s.efficiency || 0.85), 0) / (formData.setups.length || 1) * 100)}%` }}
-                                />
-                             </div>
-                        </div>
-                    </Card>
-                </div>
-
                 {/* Part Cost Breakup */}
                 <Card>
                     <h2 className="text-xl sm:text-2xl font-semibold text-primary border-b border-border pb-3 mb-6">Part Cost Breakup</h2>
@@ -1399,7 +1355,7 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({ user, materials,
                 {/* Final Part Cost */}
                 <Card className="!p-0 overflow-hidden">
                     <div className="p-6 text-center">
-                        <h3 className="text-xl font-bold text-primary">Final Machined Part Cost</h3>
+                        <h3 className="text-xl font-bold text-primary">Final Part Cost</h3>
                     </div>
                     <div className="bg-primary/10 p-6 text-center border-t-2 border-primary">
                         <span className="text-3xl sm:text-4xl font-black text-primary">{formatCurrency(totalCostPerPart)}</span>

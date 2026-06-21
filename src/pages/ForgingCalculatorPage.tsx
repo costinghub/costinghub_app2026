@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Clock, Hammer, Layers, ShieldCheck, TrendingUp, AlertCircle, Flame, Scissors, Zap, HelpCircle, Info } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Clock, Hammer, Layers, ShieldCheck, TrendingUp, AlertCircle, Flame, Scissors, Zap } from 'lucide-react';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
@@ -10,9 +10,6 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
 import { calculateForgingCosts } from '../services/forgingCalculationService';
-import { ForgingSchematics } from '../components/ForgingSchematics';
-import { MaterialFlowChart } from '../components/MaterialFlowChart';
-import { CalculationHeader } from '../components/CalculationHeader';
 
 ChartJS.register(ArcElement, Tooltip, Legend, Title, ChartDataLabels);
 
@@ -34,41 +31,6 @@ const FORGING_MATERIAL_PRESETS: ForgingMaterialPreset[] = [
   { name: 'Aluminum 6061-T6', category: 'Aluminum', density: 2.70, costPerKg: 4.80 },
   { name: 'Titanium Ti-6Al-4V', category: 'Titanium', density: 4.43, costPerKg: 26.00 },
 ];
-
-const SCALE_LOSS_GUIDES: Record<string, string> = {
-  'Carbon Steel': 'Standard furnace heating typically results in 3-5% loss. Induction heating reduces this to 0.5-1%.',
-  'Alloy Steel': 'Medium alloy steels oxidize moderately. Expect 2.5-4% loss in gas furnaces depending on soak time.',
-  'Stainless Steel': 'Chromium content forms a protective film, but high temps still cause 1.0-2.5% scale loss.',
-  'Aluminum': 'Aluminum forms a very thin oxide layer. Scale loss is negligible (< 0.2%), but focus on flash volume.',
-  'Titanium': 'Extremely reactive to oxygen at forging temps. Use protective coatings to keep loss under 0.5-1.5%.',
-};
-
-const TYPICAL_SCALE_LOSS_PRESETS: Record<string, { label: string; value: number }[]> = {
-  'Carbon Steel': [
-    { label: '0.8% - Induction Heating (Rapid, low-scale preheat)', value: 0.8 },
-    { label: '3.0% - Controlled Gas Furnace (Standard heating)', value: 3.0 },
-    { label: '5.0% - Open Fuel Furnace (High oxidation & soak)', value: 5.0 },
-  ],
-  'Alloy Steel': [
-    { label: '0.6% - Shielded Induction Loop (Inert environment)', value: 0.6 },
-    { label: '2.5% - Controlled Atmosphere Gas Oven', value: 2.5 },
-    { label: '4.0% - Standard Heavy-duty Rotary Hearth', value: 4.0 },
-  ],
-  'Stainless Steel': [
-    { label: '0.5% - Viscous Glass Coating (Protective barrier)', value: 0.5 },
-    { label: '1.5% - High-frequency Induction preheater', value: 1.5 },
-    { label: '2.5% - Standard Electric Muffle Furnace', value: 2.5 },
-  ],
-  'Aluminum': [
-    { label: '0.05% - Clean Electric Radiant Heating', value: 0.05 },
-    { label: '0.15% - Direct Fired Gas Convection Oven', value: 0.15 },
-  ],
-  'Titanium': [
-    { label: '0.3% - Glass Enamel Dip Coating (Industry standard)', value: 0.3 },
-    { label: '1.0% - Electric Chamber Preheat (Uncoated)', value: 1.0 },
-    { label: '2.0% - Fuel-Fired Preheater (High reactive loss)', value: 2.0 },
-  ],
-};
 
 const FORGING_PROCESSES = [
   { name: 'Closed Die Forging', defaultYield: 78, defaultScaleLoss: 3.0, defaultDieCost: 18500, defaultDieLife: 15000, defaultPressRate: 150, defaultPressTime: 25 },
@@ -144,39 +106,16 @@ export const ForgingCalculatorPage: React.FC<ForgingCalculatorPageProps> = ({
   onNavigate
 }) => {
   const [formData, setFormData] = useState<ForgingInput>(() => {
-    let initialData = { ...INITIAL_FORGING_INPUT };
     if (existingCalculation && existingCalculation.calculatorType === 'forging') {
-      initialData = { ...initialData, ...existingCalculation.inputs } as ForgingInput;
-    } else {
-      initialData = {
-        ...initialData,
-        id: uuid(),
-        calculationNumber: `EST-FORGE-${Math.floor(1000 + Math.random() * 9000)}`,
-        createdAt: new Date().toISOString(),
-      };
-      
-      // Check for initial type from landing page
-      const savedType = localStorage.getItem('costinghub_initial_forging_type');
-      if (savedType) {
-        initialData.forgingProcess = savedType as any;
-        localStorage.removeItem('costinghub_initial_forging_type'); // Clear after use
-        
-        // Apply process defaults
-        const processPreset = FORGING_PROCESSES.find(p => p.name === savedType);
-        if (processPreset) {
-          initialData.yieldRate = processPreset.defaultYield;
-          initialData.scaleLossPercent = processPreset.defaultScaleLoss;
-        }
-      }
+      return { ...INITIAL_FORGING_INPUT, ...existingCalculation.inputs } as ForgingInput;
     }
-    return initialData;
+    return {
+      ...INITIAL_FORGING_INPUT,
+      id: uuid(),
+      calculationNumber: `EST-FORGE-${Math.floor(1000 + Math.random() * 9000)}`,
+      createdAt: new Date().toISOString(),
+    };
   });
-
-  const [showProcessGuide, setShowProcessGuide] = useState(false);
-
-  const selectedMaterial = FORGING_MATERIAL_PRESETS.find(m => m.name === formData.materialType);
-  const materialCategory = selectedMaterial?.category || 'Carbon Steel';
-  const scaleLossTip = SCALE_LOSS_GUIDES[materialCategory];
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
@@ -310,7 +249,7 @@ export const ForgingCalculatorPage: React.FC<ForgingCalculatorPageProps> = ({
     }
   };
 
-  const handleSaveDraftClick = useCallback(() => {
+  const handleSaveDraftClick = () => {
     setSaveStatus('saving');
     const calcObj: Calculation = {
       id: formData.id,
@@ -325,21 +264,7 @@ export const ForgingCalculatorPage: React.FC<ForgingCalculatorPageProps> = ({
     };
     onSaveDraft(calcObj);
     setSaveStatus('saved');
-  }, [formData, forgingResults, user.id, existingCalculation, elapsedSeconds, onSaveDraft]);
-
-  // Keyboard Shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+S to Save Draft
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        handleSaveDraftClick();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSaveDraftClick]);
+  };
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: formData.currency }).format(val);
@@ -421,29 +346,28 @@ export const ForgingCalculatorPage: React.FC<ForgingCalculatorPageProps> = ({
 
   return (
     <div className="w-full max-w-7xl mx-auto flex flex-col min-h-screen text-left">
-      <div className="flex justify-between items-center mb-6 no-print">
-        <Button type="button" variant="secondary" onClick={onBack} size="sm">
-          ← Calculations Dashboard
-        </Button>
-        <div className="flex gap-2">
-            <Button type="button" onClick={() => onNavigate('calculator')} variant="outline" size="sm">
-                Switch to Machining
-            </Button>
-            <Button type="button" onClick={handleSaveDraftClick} variant="secondary" size="sm">
-                Save Draft
-            </Button>
+      {/* Visual Workspace Launch Nav Header */}
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-border mb-8">
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-xxs font-black tracking-widest uppercase px-2.5 py-0.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded border border-rose-500/20">
+              Forging Costing Studio
+            </span>
+          </div>
+          <h1 className="text-3xl font-black text-text-primary tracking-tight">Forging Shoulder-Cost Calculator</h1>
+          <p className="text-sm text-text-muted">
+            Friction-yield billet modeling, trimming operational rates, and die wear amortization bounds.
+          </p>
         </div>
-      </div>
-
-      <CalculationHeader 
-        calcId={formData.calculationNumber}
-        partName={formData.partName}
-        partNumber={formData.partNumber}
-        customer={formData.customerName}
-        created={formData.createdAt}
-        type="forging"
-        status={existingCalculation?.status === 'final' ? 'Final' : 'Draft'}
-      />
+        <div className="flex gap-3">
+          <Button type="button" variant="secondary" onClick={onBack}>
+            ← Calculations Dashboard
+          </Button>
+          <Button type="button" onClick={() => onNavigate('calculator')} variant="outline">
+            Switch to Machining
+          </Button>
+        </div>
+      </header>
 
       <form onSubmit={handleSubmit} className="space-y-8 pb-32">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -569,65 +493,12 @@ export const ForgingCalculatorPage: React.FC<ForgingCalculatorPageProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <label className="block text-sm font-medium text-text-secondary">Furnace Scale Loss (%)</label>
-                    <button 
-                      type="button"
-                      onClick={() => setShowProcessGuide(!showProcessGuide)}
-                      className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${
-                        showProcessGuide 
-                          ? 'bg-rose-600 text-white shadow-sm' 
-                          : 'bg-rose-50/50 text-rose-600 border border-rose-200 dark:bg-rose-950/20 dark:border-rose-800'
-                      }`}
-                    >
-                      <Info className="w-3 h-3" />
-                      {showProcessGuide ? 'Hide Guide' : 'Process Guide'}
-                    </button>
-                  </div>
-                  
-                  {showProcessGuide && (
-                    <div className="mt-2 p-3 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-800 rounded-lg animate-in fade-in slide-in-from-top-1 duration-200">
-                      <div className="flex gap-2">
-                        <HelpCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                        <div className="space-y-1">
-                          <p className="text-xs font-bold text-rose-700 dark:text-rose-400">Contextual Tip for {materialCategory}:</p>
-                          <p className="text-[11px] text-text-secondary leading-relaxed italic">
-                            "{scaleLossTip}"
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Auto-Suggest Preset Drop-down based on the selected material group */}
-                  <div className="mt-2 space-y-1">
-                    <label className="block text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider">
-                      Auto-Suggest Preset ({materialCategory})
-                    </label>
-                    <select
-                      className="block w-full px-3 py-2 text-xs border border-border rounded-xl bg-background/50 text-text-primary focus:outline-none focus:border-rose-600 focus:ring-1 focus:ring-rose-600 transition-all cursor-pointer"
-                      value={TYPICAL_SCALE_LOSS_PRESETS[materialCategory]?.some(preset => Math.abs(preset.value - formData.scaleLossPercent) < 0.001) ? TYPICAL_SCALE_LOSS_PRESETS[materialCategory].find(p => Math.abs(p.value - formData.scaleLossPercent) < 0.001)?.value : ""}
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value);
-                        if (!isNaN(val)) {
-                          setFormData(prev => ({ ...prev, scaleLossPercent: val }));
-                        }
-                      }}
-                    >
-                      <option value="">-- Choose a typical heating preset configuration --</option>
-                      {TYPICAL_SCALE_LOSS_PRESETS[materialCategory]?.map((preset, idx) => (
-                        <option key={idx} value={preset.value}>
-                          {preset.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
+                  <label className="block text-sm font-medium text-text-secondary">Furnace Scale Loss (%)</label>
                   <input
                     type="range"
                     min="0"
                     max="10"
-                    step="0.05"
+                    step="0.5"
                     value={formData.scaleLossPercent}
                     onInput={(e: any) => setFormData(prev => ({ ...prev, scaleLossPercent: parseFloat(e.target.value) || 0 }))}
                     onChange={() => {}}
@@ -635,7 +506,7 @@ export const ForgingCalculatorPage: React.FC<ForgingCalculatorPageProps> = ({
                   />
                   <div className="flex justify-between text-xs font-mono text-text-secondary mt-1">
                     <span>0% (Scale-free)</span>
-                    <span className="text-rose-600 dark:text-rose-400 font-bold">{formData.scaleLossPercent.toFixed(2)}%</span>
+                    <span className="text-rose-600 dark:text-rose-400 font-bold">{formData.scaleLossPercent}%</span>
                     <span>10% (High Scale)</span>
                   </div>
                 </div>
@@ -943,10 +814,28 @@ export const ForgingCalculatorPage: React.FC<ForgingCalculatorPageProps> = ({
             <Card className="!p-0 overflow-hidden bg-gradient-to-br from-rose-500/10 to-transparent border-rose-500/20 relative">
               <div className="p-5">
                 <span className="text-[10px] font-black uppercase text-rose-600 block mb-0.5 tracking-wider">Operational Blueprint</span>
-                <h3 className="font-bold text-base text-text-primary">Process Visualization</h3>
+                <h3 className="font-bold text-base text-text-primary">Die Impression Blanking</h3>
               </div>
               <div className="h-44 bg-slate-900 flex justify-center items-center select-none">
-                <ForgingSchematics type={formData.forgingProcess} yieldRate={formData.yieldRate} />
+                <svg width="220" height="130" viewBox="0 0 220 130">
+                  {/* Upper Die */}
+                  <path d="M40,15 L180,15 L180,35 L140,35 L120,43 L100,43 L80,35 L40,35 Z" fill="#64748b" stroke="#94a3b8" strokeWidth="1.5" />
+                  
+                  {/* Squeezed Billet (Bright Heat) */}
+                  <path d="M78,44 L142,44 L152,58 L165,60 L165,65 L152,67 L68,67 L55,65 L55,60 L68,58 Z" fill="#f43f5e" stroke="#fda4af" strokeWidth="2" className="animate-pulse" />
+                  <rect x="53" y="58" width="12" height="9" fill="#e11d48" opacity="0.6" />
+                  <rect x="155" y="58" width="12" height="9" fill="#e11d48" opacity="0.6" />
+                  
+                  {/* Lower Die */}
+                  <path d="M40,110 L180,110 L180,90 L140,90 L120,82 L100,82 L80,90 L40,90 Z" fill="#475569" stroke="#64748b" strokeWidth="1.5" />
+                  
+                  <text x="110" y="27" fill="#ffffff" fontSize="8" fontWeight="bold" textAnchor="middle">UPPER PISTON DIE</text>
+                  <text x="110" y="60" fill="#ffffff" fontSize="9" fontWeight="black" textAnchor="middle">HOT BILLET {formData.yieldRate}%</text>
+                  <text x="110" y="103" fill="#ffffff" fontSize="8" fontWeight="bold" textAnchor="middle">LOWER ANVIL DIE</text>
+                  
+                  <text x="32" y="64" fill="#f43f5e" fontSize="7" fontWeight="bold">Flash</text>
+                  <text x="188" y="64" fill="#f43f5e" fontSize="7" fontWeight="bold">Flash</text>
+                </svg>
               </div>
             </Card>
 
@@ -1005,19 +894,6 @@ export const ForgingCalculatorPage: React.FC<ForgingCalculatorPageProps> = ({
                     {formatCurrency(forgingResults.costPerPart)}
                   </span>
                 </div>
-              </div>
-            </Card>
-
-            {/* Material Flow Chart Recharts */}
-            <Card>
-              <h3 className="font-bold text-xs text-text-muted uppercase tracking-wider mb-4">Weight & Material Mass Flow (kg)</h3>
-              <div className="h-60 relative">
-                <MaterialFlowChart 
-                  rawBilletWeight={forgingResults.rawBilletWeightKg}
-                  scaleLoss={forgingResults.scaleLossWeightKg}
-                  flashScrap={forgingResults.flashScrapWeightKg}
-                  finishedWeight={formData.finishedPartWeightKg}
-                />
               </div>
             </Card>
 

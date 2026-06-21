@@ -82,7 +82,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ user, session, currentVi
           <div className={`
               fixed inset-y-0 left-0 z-30 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0
               ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-              sidebar-container no-print
           `}>
               <Sidebar 
                   user={user} 
@@ -96,7 +95,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ user, session, currentVi
       )}
 
       <div className="flex-1 flex flex-col overflow-hidden w-full">
-        <header className="bg-surface text-text-primary sticky top-0 z-10 px-6 h-14 flex items-center border-b border-border flex-shrink-0 shadow-xs no-print">
+        <header className="bg-surface text-text-primary sticky top-0 z-10 px-6 h-14 flex items-center border-b border-border flex-shrink-0 shadow-xs">
           <div className="w-full flex justify-between items-center">
              <div className="flex items-center gap-4">
                 {showSidebar && (

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { ResultsPageProps } from '../types';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -8,20 +8,6 @@ import { QuoteModal } from '../components/QuoteModal';
 
 export const ResultsPage: React.FC<ResultsPageProps> = ({ calculation, onBack, user, materials }) => {
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
-
-  // Keyboard Shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+P to Print
-      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
-        e.preventDefault();
-        window.print();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   if (!calculation || !calculation.results) {
     return (
@@ -52,7 +38,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ calculation, onBack, u
 
   return (
     <div className="w-full max-w-6xl mx-auto animate-fade-in">
-        <div className="mb-6 flex justify-between items-center no-print">
+        <div className="mb-6 flex justify-between items-center">
             <Button variant="secondary" onClick={onBack}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -66,14 +52,14 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ calculation, onBack, u
                 Generate Quote
             </Button>
         </div>
-        <div className="mb-4 bg-surface shadow rounded-lg p-4 flex justify-between items-center border border-border results-header">
+        <div className="mb-4 bg-surface shadow rounded-lg p-4 flex justify-between items-center border border-border">
              <div>
-                <h1 className="text-3xl font-bold text-primary">Results Statement</h1>
-                <p className="text-text-secondary">Part: {calculation.inputs.partName} | No: {calculation.inputs.partNumber}</p>
+                <h1 className="text-3xl font-bold text-primary">Results for {calculation.inputs.partName}</h1>
+                <p className="text-text-secondary">Part No: {calculation.inputs.partNumber} | Batch Volume: {calculation.inputs.batchVolume}</p>
              </div>
              <div className="text-right">
                 <p className="text-3xl font-bold text-primary">{new Intl.NumberFormat('en-US', { style: 'currency', currency: currency }).format(calculation.results.costPerPart)}</p>
-                <p className="text-text-secondary uppercase text-[10px] font-black tracking-widest leading-none">Net Unit Cost</p>
+                <p className="text-text-secondary">Cost Per Part</p>
              </div>
         </div>
         <Card>
