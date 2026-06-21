@@ -28,34 +28,10 @@ export const calculateCastingCosts = (
     heatTreatmentCostPerPart = 0,
     partSurfaceAreaM2 = 0,
     surfaceTreatments = [],
-    markups,
-    projectedAreaCm2 = 0,
-    numberOfCavities = 1,
-    injectionPressureBar = 0,
-    safetyFactor = 1.2,
-    castingProcess,
-    waxWeightKg = 0,
-    waxCostPerKg = 10,
-    patternInjectionTimeSec = 0
+    markups
   } = input;
 
   const vol = batchVolume > 0 ? batchVolume : 1;
-
-  // Engineering Calculations
-  let calculatedTonnage = undefined;
-  if ((castingProcess === 'Pressure Die Casting' || castingProcess === 'HPDC' || castingProcess === 'LPDC') && projectedAreaCm2 > 0) {
-    const cavCount = numberOfCavities > 0 ? numberOfCavities : 1;
-    const totalArea = (projectedAreaCm2 * cavCount) + (input.runnerProjectedAreaCm2 || 0);
-    const pressure = input.intensificationPressureBar || injectionPressureBar || (castingProcess === 'HPDC' ? 800 : 100);
-    calculatedTonnage = (totalArea * pressure) / 1000 * safetyFactor;
-  }
-
-  const waxCostPerPart = (castingProcess === 'Investment Casting') ? (waxWeightKg * waxCostPerKg) : 0;
-  // If patternInjectionTimeSec is provided, we can add it to molding cost or separate it.
-  // For simplicity, we add it to molding time if process is investment.
-  const effectiveMoldingTime = patternInjectionTimeSec > 0 
-    ? (moldingCycleTimeMin + (patternInjectionTimeSec / 60)) 
-    : moldingCycleTimeMin;
 
   // 1) Weight and material analysis
   const effectiveYield = yieldRate > 0 && yieldRate <= 100 ? yieldRate : 100;
@@ -72,7 +48,7 @@ export const calculateCastingCosts = (
 
   // 2) Melting & Pouring Energy/Ops Costs
   const meltingCostPerPart = pouredWeightKg * meltingCostPerKg;
-  const moldingCostPerPart = (effectiveMoldingTime / 60) * moldingHourlyRate;
+  const moldingCostPerPart = (moldingCycleTimeMin / 60) * moldingHourlyRate;
   const pouringCostPerPart = (pouringTimeSec / 3600) * pouringHourlyRate;
 
   // 3) Core Cost
@@ -84,19 +60,7 @@ export const calculateCastingCosts = (
   const fettlingCostPerPart = (fettlingTimeMin / 60) * fettlingHourlyRate;
 
   // 5) Pattern / Mold Tooling Amortization
-  let toolingAmortizedCostPerPart = 0;
-  if (input.isToolingAmortizedAuto !== false) {
-    // Standard calculation: (Cost * Sharing Factor) / Lifetime
-    // Sharing factor defaults to 1.0 (fully owned by this part)
-    const sharingFactor = input.toolingSharingFactor ?? 1.0;
-    const cavCount = (numberOfCavities && numberOfCavities > 0) ? numberOfCavities : 1;
-    toolingAmortizedCostPerPart = patternLifeShots > 0 
-      ? (patternCost * sharingFactor / (patternLifeShots * cavCount)) 
-      : 0;
-  } else {
-    // Manual override prioritized
-    toolingAmortizedCostPerPart = input.toolingAmortizedCostOverride ?? 0;
-  }
+  const toolingAmortizedCostPerPart = patternLifeShots > 0 ? (patternCost / patternLifeShots) : 0;
 
   // 6) Surface Treatment
   let surfaceTreatmentCostPerPart = 0;
@@ -109,7 +73,7 @@ export const calculateCastingCosts = (
     }
   });
 
-  // 7) Base Manufacturing Cost
+  // 7) Base Manufacturing Cost (excl surface treatment and tool amortization, matching machining's cost splits)
   const baseManufacturingCost =
     netMaterialCostPerPart +
     meltingCostPerPart +
@@ -117,7 +81,6 @@ export const calculateCastingCosts = (
     pouringCostPerPart +
     coreCostPerPart +
     fettlingCostPerPart +
-    waxCostPerPart +
     Number(inspectionCostPerPart) +
     Number(heatTreatmentCostPerPart);
 
@@ -160,9 +123,6 @@ export const calculateCastingCosts = (
     pouringCostPerPart,
     coreCostPerPart,
     fettlingCostPerPart,
-    
-    calculatedTonnage,
-    waxCostPerPart,
     
     toolingAmortizedCostPerPart,
     surfaceTreatmentCost: surfaceTreatmentCostPerPart * vol,
