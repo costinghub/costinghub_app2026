@@ -7,8 +7,8 @@ interface SidebarProps {
   onNavigate: (view: View) => void;
   user: User;
   session: { user: User; access_token: string } | null;
-  currentModule: 'machining' | 'casting' | 'forging' | null;
-  onModuleChange: (module: 'machining' | 'casting' | 'forging' | null) => void;
+  currentModule: 'machining' | 'casting' | 'forging' | 'stamping' | null;
+  onModuleChange: (module: 'machining' | 'casting' | 'forging' | 'stamping' | null) => void;
 }
 
 const NavItem: React.FC<{
@@ -40,6 +40,7 @@ const Icons = {
     Processes: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>,
     Tools: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
     CostMaster: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01M12 6v-1m0-1H8m12 1h-4m-7 11H8m12 0h-4M12 21v-1m0 1v.01M12 18v-1m0-1H8m12 0h-4m-4 5a9 9 0 110-18 9 9 0 010 18z" /></svg>,
+    Home: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>,
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, user, session, currentModule, onModuleChange }) => {
@@ -66,47 +67,93 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, user,
 
   return (
     <aside className="bg-surface text-text-primary flex flex-col p-3 shadow-xs border-r border-border/80 transition-all duration-200 w-64 h-full">
-        <div className="py-4 mb-3 border-b border-border/50 h-[76px] flex items-center justify-between">
-            <button onClick={() => onNavigate('landing')} className="text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-xs p-1 ml-3 flex-shrink-0 animate-fade-in">
+        <div className="py-4 mb-3 border-b border-border/50 h-auto flex flex-col justify-center gap-2">
+            <button onClick={() => { onModuleChange(null); onNavigate('landing'); }} className="text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-xs p-1 ml-3 flex-shrink-0 animate-fade-in">
                 <h1 className="text-2xl font-bold tracking-wide text-text-primary">
                   Costing<span className="text-primary font-extrabold ml-1">Hub</span>
                 </h1>
                 <p className="text-xs text-text-muted font-semibold tracking-normal mt-0.5">All Costs. One Hub.</p>
             </button>
+            {currentModule && (
+              <div className="px-3 py-1 bg-primary/10 rounded-full text-xs font-bold text-primary flex items-center justify-between mx-3 animate-fade-in">
+                <span className="capitalize">{currentModule} Module</span>
+                <button 
+                  onClick={() => { onModuleChange(null); onNavigate('landing'); }}
+                  className="text-[10px] hover:text-primary-dark underline font-bold"
+                  title="Switch manufacturing module"
+                >
+                  Switch
+                </button>
+              </div>
+            )}
         </div>
 
-        <nav className="flex-1 space-y-2 overflow-y-auto">
-            {currentModule && (
+        <nav className="flex-1 space-y-1.5 overflow-y-auto">
+            {currentModule === 'machining' && (
               <>
-                {currentModule === 'machining' && (
-                  <>
-                    <NavItem label="Machining Calcs" view="calculations" icon={Icons.Calculations} {...{ currentView, onNavigate }} />
-                    <NavItem label="New Machining Calc" view="calculator" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5v14"/></svg>} {...{ currentView, onNavigate }} />
-                  </>
-                )}
-                {currentModule === 'casting' && (
-                  <>
-                    <NavItem label="Casting Calcs" view="calculations" icon={Icons.Calculations} {...{ currentView, onNavigate }} />
-                    <NavItem label="New Casting Calc" view="castingCalculator" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v8M8 12h8" /></svg>} {...{ currentView, onNavigate }} />
-                  </>
-                )}
-                {currentModule === 'forging' && (
-                  <>
-                    <NavItem label="Forging Calcs" view="calculations" icon={Icons.Calculations} {...{ currentView, onNavigate }} />
-                    <NavItem label="New Forging Calc" view="forgingCalculator" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 5 4 4"/><path d="M22 2s-3 3-5 5l-7 7s-1 2-2 3c-1 1-2 2-3 2l-3 1 1-3c0-1 1-2 2-3 1-1 3-2 3-2l7-7s3-5 5-5z"/></svg>} {...{ currentView, onNavigate }} />
-                  </>
-                )}
+                <NavItem label="Home Page" view="landing" icon={Icons.Home} currentView={currentView} onNavigate={() => { onModuleChange(null); onNavigate('landing'); }} />
+                <NavItem label="Saved Calculation Page" view="calculations" icon={Icons.Calculations} {...{ currentView, onNavigate }} />
+                <NavItem label="New calculation Page" view="newEstimation" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5v14"/></svg>} {...{ currentView, onNavigate }} />
+                <NavItem label="Report" view="reports" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>} {...{ currentView, onNavigate }} />
+                
+                <div className="pt-2 border-t border-border/50 my-1"></div>
+                
+                <NavItem label="Cost Master" view="costMaster" icon={Icons.CostMaster} {...{ currentView, onNavigate }} />
+                <NavItem label="Machine master" view="machines" icon={Icons.Machines} {...{ currentView, onNavigate }} />
+                <NavItem label="Tool Master" view="toolLibrary" icon={Icons.Tools} {...{ currentView, onNavigate }} />
+                <NavItem label="Raw material Master" view="materials" icon={Icons.Materials} {...{ currentView, onNavigate }} />
+                <NavItem label="Process Master" view="processes" icon={Icons.Processes} {...{ currentView, onNavigate }} />
+              </>
+            )}
+            
+            {currentModule === 'casting' && (
+              <>
+                <NavItem label="Home Page" view="landing" icon={Icons.Home} currentView={currentView} onNavigate={() => { onModuleChange(null); onNavigate('landing'); }} />
+                <NavItem label="Saved Calculation Page" view="calculations" icon={Icons.Calculations} {...{ currentView, onNavigate }} />
+                <NavItem label="New calculation Page" view="newEstimation" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v8M8 12h8" /></svg>} {...{ currentView, onNavigate }} />
+                <NavItem label="Report" view="reports" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>} {...{ currentView, onNavigate }} />
+                
+                <div className="pt-2 border-t border-border/50 my-1"></div>
+                
+                <NavItem label="Casting Cost Master" view="costMaster" icon={Icons.CostMaster} {...{ currentView, onNavigate }} />
+                <NavItem label="Equipment Master" view="machines" icon={Icons.Machines} {...{ currentView, onNavigate }} />
+                <NavItem label="Pattern Master" view="toolLibrary" icon={Icons.Tools} {...{ currentView, onNavigate }} />
+                <NavItem label="Alloy Master" view="materials" icon={Icons.Materials} {...{ currentView, onNavigate }} />
+                <NavItem label="Cast Methods Master" view="processes" icon={Icons.Processes} {...{ currentView, onNavigate }} />
+              </>
+            )}
+            
+            {currentModule === 'forging' && (
+              <>
+                <NavItem label="Home Page" view="landing" icon={Icons.Home} currentView={currentView} onNavigate={() => { onModuleChange(null); onNavigate('landing'); }} />
+                <NavItem label="Saved Calculation Page" view="calculations" icon={Icons.Calculations} {...{ currentView, onNavigate }} />
+                <NavItem label="New calculation Page" view="newEstimation" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 5 4 4"/><path d="M22 2s-3 3-5 5l-7 7s-1 2-2 3c-1 1-2 2-3 2l-3 1 1-3c0-1 1-2 2-3 1-1 3-2 3-2l7-7s3-5 5-5z"/></svg>} {...{ currentView, onNavigate }} />
+                <NavItem label="Report" view="reports" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>} {...{ currentView, onNavigate }} />
+                
+                <div className="pt-2 border-t border-border/50 my-1"></div>
+                
+                <NavItem label="Forging Cost Master" view="costMaster" icon={Icons.CostMaster} {...{ currentView, onNavigate }} />
+                <NavItem label="Press Master" view="machines" icon={Icons.Machines} {...{ currentView, onNavigate }} />
+                <NavItem label="Dies Master" view="toolLibrary" icon={Icons.Tools} {...{ currentView, onNavigate }} />
+                <NavItem label="Billet Master" view="materials" icon={Icons.Materials} {...{ currentView, onNavigate }} />
+                <NavItem label="Forging Methods Master" view="processes" icon={Icons.Processes} {...{ currentView, onNavigate }} />
+              </>
+            )}
 
-                <NavItem label="Reports" view="reports" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>} {...{ currentView, onNavigate }} />
-                <NavItem label="Feedback" view="feedback" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>} {...{ currentView, onNavigate }} />
+            {currentModule === 'stamping' && (
+              <>
+                <NavItem label="Home Page" view="landing" icon={Icons.Home} currentView={currentView} onNavigate={() => { onModuleChange(null); onNavigate('landing'); }} />
+                <NavItem label="Saved Calculation Page" view="calculations" icon={Icons.Calculations} {...{ currentView, onNavigate }} />
+                <NavItem label="New calculation Page" view="newEstimation" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>} {...{ currentView, onNavigate }} />
+                <NavItem label="Report" view="reports" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>} {...{ currentView, onNavigate }} />
                 
-                <div className="pt-2 border-t border-border/50 my-2"></div>
+                <div className="pt-2 border-t border-border/50 my-1"></div>
                 
-                <NavItem label={`${currentModule === 'machining' ? 'Machining' : currentModule === 'casting' ? 'Casting' : 'Forging'} Cost Master`} view="costMaster" icon={Icons.CostMaster} {...{ currentView, onNavigate }} />
-                <NavItem label={`${currentModule === 'machining' ? 'Materials' : currentModule === 'casting' ? 'Alloys' : 'Billets'}`} view="materials" icon={Icons.Materials} {...{ currentView, onNavigate }} />
-                <NavItem label={`${currentModule === 'machining' ? 'Machines' : currentModule === 'casting' ? 'Equipment' : 'Presses'}`} view="machines" icon={Icons.Machines} {...{ currentView, onNavigate }} />
-                <NavItem label={`${currentModule === 'machining' ? 'Processes' : currentModule === 'casting' ? 'Cast Methods' : 'Methods'}`} view="processes" icon={Icons.Processes} {...{ currentView, onNavigate }} />
-                <NavItem label={`${currentModule === 'machining' ? 'Cutting Tools' : currentModule === 'casting' ? 'Patterns' : 'Dies'}`} view="toolLibrary" icon={Icons.Tools} {...{ currentView, onNavigate }} />
+                <NavItem label="Stamping Cost Master" view="costMaster" icon={Icons.CostMaster} {...{ currentView, onNavigate }} />
+                <NavItem label="Press & Equip Master" view="machines" icon={Icons.Machines} {...{ currentView, onNavigate }} />
+                <NavItem label="Stamping Die Master" view="toolLibrary" icon={Icons.Tools} {...{ currentView, onNavigate }} />
+                <NavItem label="Sheet Metal Master" view="materials" icon={Icons.Materials} {...{ currentView, onNavigate }} />
+                <NavItem label="Forming Methods Master" view="processes" icon={Icons.Processes} {...{ currentView, onNavigate }} />
               </>
             )}
         </nav>

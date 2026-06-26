@@ -1,5 +1,6 @@
 {
   "name": "CostingHub",
   "description": "All Costs. One Hub. The ultimate platform for production teams to calculate machining costs, estimate cycle times, manage material libraries, and generate professional quotes.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

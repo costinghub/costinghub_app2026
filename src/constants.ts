@@ -411,3 +411,30 @@ export const DEFAULT_FORGING_TOOLS: Partial<Tool>[] = [
   { name: 'Closed Die Tool Block Set', brand: 'Farina', model: 'DB-1600SR', toolType: 'Dies', material: 'H13 Forged Tool Steel', diameter: 0, cornerRadius: null, numberOfTeeth: null, arborOrInsert: 'Insert', compatibleMachineTypes: ['Forging Press'], price: 18500, cuttingSpeedVc: null, feedPerTooth: null, speedRpm: null, feedRate: null, estimatedLife: 15000 },
   { name: 'Shearing Blades Set', brand: 'Fimi', model: 'SB-500', toolType: 'Cutting Blades', material: 'D2 Tool Steel', diameter: 0, cornerRadius: null, numberOfTeeth: null, arborOrInsert: 'Arbor', compatibleMachineTypes: ['Shearing'], price: 2000, cuttingSpeedVc: null, feedPerTooth: null, speedRpm: null, feedRate: null, estimatedLife: 50000 }
 ];
+
+// --- STAMPING & SHEET METAL SEED DATA DEFAULTS ---
+export const DEFAULT_STAMPING_MATERIALS: Partial<MaterialMasterItem>[] = [
+  { name: 'Cold Rolled Steel (SPCC)', category: 'P - Steel', subCategory: 'Sheet Steel SPCC', properties: { 'Density': { value: 7.85, unit: 'g/cm³' }, 'Cost Per Kg': { value: 1.85, unit: 'USD' } } },
+  { name: 'Hot Rolled Steel (SPHC)', category: 'P - Steel', subCategory: 'Sheet Steel SPHC', properties: { 'Density': { value: 7.85, unit: 'g/cm³' }, 'Cost Per Kg': { value: 1.65, unit: 'USD' } } },
+  { name: 'Stainless Steel 304 (SS304)', category: 'M - Stainless Steel', subCategory: 'Sheet Stainless SS304', properties: { 'Density': { value: 7.93, unit: 'g/cm³' }, 'Cost Per Kg': { value: 4.25, unit: 'USD' } } },
+  { name: 'Aluminum Alloy 5052-H32', category: 'N - Non-ferrous', subCategory: 'Sheet Aluminum Al5052', properties: { 'Density': { value: 2.68, unit: 'g/cm³' }, 'Cost Per Kg': { value: 3.80, unit: 'USD' } } },
+  { name: 'Galvanized Steel (SGCC)', category: 'P - Steel', subCategory: 'Sheet Steel SGCC', properties: { 'Density': { value: 7.85, unit: 'g/cm³' }, 'Cost Per Kg': { value: 1.95, unit: 'USD' } } }
+];
+
+export const DEFAULT_STAMPING_MACHINES: Partial<Machine>[] = [
+  { name: '200T Progressive Press', brand: 'AIDA', model: 'PMX-200', hourlyRate: 95, machineType: 'Stamping Press', xAxis: 0, yAxis: 0, zAxis: 0, powerKw: 45, additionalAxis: 'none' },
+  { name: '400T Tandem Press', brand: 'Komatsu', model: 'OBS-400', hourlyRate: 140, machineType: 'Stamping Press', xAxis: 0, yAxis: 0, zAxis: 0, powerKw: 90, additionalAxis: 'none' },
+  { name: 'Trumpf 4kW Laser Cutter', brand: 'Trumpf', model: 'TruLaser 3030', hourlyRate: 85, machineType: 'Laser Cutter', xAxis: 3000, yAxis: 1500, zAxis: 115, powerKw: 35, additionalAxis: 'none' },
+  { name: 'Amada 130T Press Brake', brand: 'Amada', model: 'HG-1303', hourlyRate: 55, machineType: 'Press Brake', xAxis: 3000, yAxis: 0, zAxis: 0, powerKw: 15, additionalAxis: 'none' }
+];
+
+export const DEFAULT_STAMPING_PROCESSES: Partial<Process>[] = [
+  { name: 'Progressive Die Process', group: 'Forming Operations', compatibleMachineTypes: ['Stamping Press'], parameters: [{ name: 'strokesPerMinute', label: 'Stroke Rate (SPM)', unit: 'Strokes/Min' }] },
+  { name: 'Laser Cutting Process', group: 'Cutting Operations', compatibleMachineTypes: ['Laser Cutter'], parameters: [{ name: 'feedRateMmPerMin', label: 'Feed Rate', unit: 'mm/min' }] },
+  { name: 'Press Brake Bending Process', group: 'Forming Operations', compatibleMachineTypes: ['Press Brake'], parameters: [{ name: 'secondsPerBend', label: 'Time per bend', unit: 'Sec' }] }
+];
+
+export const DEFAULT_STAMPING_TOOLS: Partial<Tool>[] = [
+  { name: 'Multi-Stage Progressive Die Set', brand: 'AIDA', model: 'PD-200X', toolType: 'Dies', material: 'D2 Tool Steel', diameter: 0, cornerRadius: null, numberOfTeeth: null, arborOrInsert: 'Insert', compatibleMachineTypes: ['Stamping Press'], price: 28000, cuttingSpeedVc: null, feedPerTooth: null, speedRpm: null, feedRate: null, estimatedLife: 120000 },
+  { name: 'Bending V-Die Tooling Set', brand: 'Amada', model: 'VD-130', toolType: 'Press Brake Tooling', material: 'H13 Steel', diameter: 0, cornerRadius: null, numberOfTeeth: null, arborOrInsert: 'Arbor', compatibleMachineTypes: ['Press Brake'], price: 3800, cuttingSpeedVc: null, feedPerTooth: null, speedRpm: null, feedRate: null, estimatedLife: 80000 }
+];

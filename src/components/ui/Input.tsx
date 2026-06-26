@@ -4,9 +4,10 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
   unit?: string;
   error?: string;
+  helperText?: string;
 }
 
-export const Input: React.FC<InputProps> = ({ label, unit, id, error, ...props }) => {
+export const Input: React.FC<InputProps> = ({ label, unit, id, error, helperText, ...props }) => {
   const inputId = id || `input-${props.name}`;
   const errorClasses = error 
     ? 'border-red-500 text-red-400 placeholder-red-700 focus:ring-red-500 focus:border-red-500' 
@@ -23,7 +24,7 @@ export const Input: React.FC<InputProps> = ({ label, unit, id, error, ...props }
           {...props}
           className={`block w-full pl-3 ${unit ? 'pr-16' : 'pr-3'} py-2 border rounded-md focus:outline-none sm:text-sm bg-background/50 text-text-input disabled:bg-surface disabled:text-text-muted transition-all duration-200 ${errorClasses}`}
           aria-invalid={!!error}
-          aria-describedby={error ? `${inputId}-error` : undefined}
+          aria-describedby={error ? `${inputId}-error` : (helperText ? `${inputId}-helper` : undefined)}
         />
         {unit && (
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -31,7 +32,8 @@ export const Input: React.FC<InputProps> = ({ label, unit, id, error, ...props }
           </div>
         )}
       </div>
-      {error && <p id={`${inputId}-error`} className="mt-1 text-sm text-red-500">{error}</p>}
+      {error && <p id={`${inputId}-error`} className="mt-1 text-sm text-red-500 font-medium">{error}</p>}
+      {helperText && !error && <p id={`${inputId}-helper`} className="mt-1 text-[10px] text-text-muted italic">{helperText}</p>}
     </div>
   );
 };

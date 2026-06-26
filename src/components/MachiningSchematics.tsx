@@ -72,7 +72,7 @@ export const MachiningSchematics: React.FC<MachiningSchematicProps> = ({ type, m
         );
       case 'Grinder':
         return (
-          <div className="h-full w-full flex flex-col items-center justify-center bg-zinc-950/20 rounded-xl p-4 border border-zinc-500/10">
+          <div className="h-full w-full flex flex-col items-center justify-center bg-background/20 rounded-xl p-4 border border-border/10">
             <span className="text-[10px] font-black uppercase text-zinc-600 mb-2">Surface Grinding</span>
             <svg width="200" height="120" viewBox="0 0 200 120">
               {/* Magnetic Chuck */}

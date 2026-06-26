@@ -65,7 +65,7 @@ export interface MaterialMasterItem {
   category: "P - Steel" | "M - Stainless Steel" | "K - Cast Iron" | "N - Non-ferrous" | "S - Superalloys & Titanium" | "H - Hardened Steel" | "O - Polymers" | "SO - Special Alloys" | "Other";
   subCategory?: string;
   properties: { [key: string]: MaterialProperty } | Json;
-  module?: 'machining' | 'casting' | 'forging';
+  module?: 'machining' | 'casting' | 'forging' | 'stamping';
   user_id?: string;
   created_at?: string;
 }
@@ -82,7 +82,7 @@ export interface Machine {
   zAxis: number;
   powerKw: number;
   additionalAxis: string;
-  module?: 'machining' | 'casting' | 'forging';
+  module?: 'machining' | 'casting' | 'forging' | 'stamping';
   user_id?: string;
   created_at?: string;
 }
@@ -103,7 +103,7 @@ export interface Process {
   parameters: ProcessParameter[] | Json;
   formula?: string;
   imageUrl?: string;
-  module?: 'machining' | 'casting' | 'forging';
+  module?: 'machining' | 'casting' | 'forging' | 'stamping';
   user_id?: string;
   created_at?: string;
 }
@@ -126,7 +126,7 @@ export interface Tool {
   feedRate: number | null;
   estimatedLife: number | null;
   price: number | null;
-  module?: 'machining' | 'casting' | 'forging';
+  module?: 'machining' | 'casting' | 'forging' | 'stamping';
   user_id?: string;
   created_at?: string;
 }
@@ -264,8 +264,8 @@ export interface MachiningResult {
 export interface Calculation {
   id: string;
   name: string;
-  inputs: MachiningInput | CastingInput | ForgingInput;
-  results?: MachiningResult | CastingResult | ForgingResult;
+  inputs: MachiningInput | CastingInput | ForgingInput | any;
+  results?: MachiningResult | CastingResult | ForgingResult | StampingResult;
   status: 'draft' | 'final';
   approval_status?: 'pending' | 'approved' | 'rejected';
   user_id: string;
@@ -274,7 +274,7 @@ export interface Calculation {
   duration_seconds?: number;
   parent_id?: string | null;
   revision_number?: number | null;
-  calculatorType?: 'machining' | 'casting' | 'forging';
+  calculatorType?: 'machining' | 'casting' | 'forging' | 'stamping';
 }
 
 export interface User {
@@ -319,10 +319,11 @@ export interface LandingPageProps {
   machinesCount?: number;
   processesCount?: number;
   toolsCount?: number;
+  onModuleChange?: (module: 'machining' | 'casting' | 'forging' | 'stamping' | null) => void;
 }
 
 export interface BackupData {
-  module: 'machining' | 'casting' | 'forging';
+  module: 'machining' | 'casting' | 'forging' | 'stamping';
   calculations: Calculation[];
   materials: MaterialMasterItem[];
   machines: Machine[];
@@ -408,7 +409,7 @@ export interface DashboardPageProps {
   onUpgrade: () => void;
   isSuperAdmin: boolean;
   theme: 'light' | 'dark';
-  activeModule?: 'machining' | 'casting' | 'forging';
+  activeModule?: 'machining' | 'casting' | 'forging' | 'stamping';
 }
 
 export interface ResultsPageProps {
@@ -553,6 +554,7 @@ export type View =
   | 'calculator' 
   | 'castingCalculator'
   | 'forgingCalculator'
+  | 'stampingCalculator'
   | 'results' 
   | 'materials' 
   | 'machines' 
@@ -772,5 +774,31 @@ export interface ForgingResult {
   markupCosts: MarkupCosts;
   totalCost: number;
   costPerPart: number;
+}
+
+export interface StampingResult {
+  grossWeightKg: number;
+  scrapWeightKg: number;
+  materialCostRaw: number;
+  recoveredScrapValue: number;
+  netMaterialCost: number;
+  toolingAmortizationPerPart: number;
+  setupCostPerPart: number;
+  
+  shearingCostPerPart: number;
+  formingCostPerPart: number;
+  laserCostPerPart: number;
+  bendingCostPerPart: number;
+  secondaryCostPerPart: number;
+  inspectionCostPerPart: number;
+  
+  totalManufacturingCost: number;
+  baseUnitCost: number;
+  sgaAmount: number;
+  profitAmount: number;
+  logisticsAmount: number;
+  finalUnitCost: number;
+  annualSpend: number;
+  processType?: 'progressive' | 'tandem' | 'fabrication';
 }
 

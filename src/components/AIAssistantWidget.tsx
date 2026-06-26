@@ -125,7 +125,7 @@ export const AIAssistantWidget: React.FC<{ onNavigate: (view: 'settings') => voi
     };
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end" id="helper-ai-assistant">
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end ai-assistant-widget no-print" id="helper-ai-assistant">
             {/* Expanded Drawer */}
             {isOpen && (
                 <div className="w-[380px] sm:w-[420px] h-[580px] bg-surface border border-border/80 rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col mb-4 animate-fade-in text-text-primary">

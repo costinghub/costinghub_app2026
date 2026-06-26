@@ -127,6 +127,23 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, session, onUpd
 
     return (
         <div className="w-full max-w-4xl mx-auto space-y-8 animate-fade-in">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-border mb-8">
+                <div>
+                    <h1 className="text-3xl font-black text-text-primary tracking-tight">System Settings</h1>
+                    <p className="text-sm text-text-muted">
+                        Configure company parameters, customize logo overlays, stream AI settings, and export database copies.
+                    </p>
+                </div>
+                <div className="flex gap-2.5">
+                    <Button type="button" variant="secondary" onClick={() => onNavigate('calculations')} size="sm">
+                        ← Calculations Dashboard
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => onNavigate('landing')} size="sm">
+                        Home
+                    </Button>
+                </div>
+            </div>
+
             <form onSubmit={handleSubmit}>
                 <Card>
                     <h2 className="text-2xl font-semibold text-primary border-b border-border pb-3 mb-6">User Profile</h2>

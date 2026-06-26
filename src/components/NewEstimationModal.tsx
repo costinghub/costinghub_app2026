@@ -16,12 +16,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface NewEstimationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (module: 'machining' | 'casting' | 'forging', subType?: string) => void;
+  onSelect: (module: 'machining' | 'casting' | 'forging' | 'stamping', subType?: string) => void;
 }
 
 export const NewEstimationModal: React.FC<NewEstimationModalProps> = ({ isOpen, onClose, onSelect }) => {
   const [step, setStep] = useState<'module' | 'submodule'>('module');
-  const [selectedModule, setSelectedModule] = useState<'machining' | 'casting' | 'forging' | null>(null);
+  const [selectedModule, setSelectedModule] = useState<'machining' | 'casting' | 'forging' | 'stamping' | null>(null);
 
   const modules = [
     { 
@@ -44,6 +44,13 @@ export const NewEstimationModal: React.FC<NewEstimationModalProps> = ({ isOpen, 
       icon: <Hammer className="w-6 h-6" />, 
       color: 'rose',
       description: 'Closed die, open die, ring rolling, and cold forging analysis.'
+    },
+    { 
+      id: 'stamping' as const, 
+      name: 'Stamping & Sheet Metal', 
+      icon: <Layers className="w-6 h-6" />, 
+      color: 'purple',
+      description: 'Progressive die, transfer press, and laser cut/bend fabrication should-cost models.'
     }
   ];
 
@@ -66,10 +73,15 @@ export const NewEstimationModal: React.FC<NewEstimationModalProps> = ({ isOpen, 
       { id: 'Open Die Forging', name: 'Open Die Forging', icon: <Hammer className="w-4 h-4" /> },
       { id: 'Ring Rolling', name: 'Ring Rolling', icon: <Hammer className="w-4 h-4" /> },
       { id: 'Warm/Cold Forging', name: 'Warm/Cold Forging', icon: <Hammer className="w-4 h-4" /> }
+    ],
+    stamping: [
+      { id: 'progressive', name: 'Progressive Die Stamping', icon: <Layers className="w-4 h-4" /> },
+      { id: 'tandem', name: 'Tandem & Transfer Press', icon: <Layers className="w-4 h-4" /> },
+      { id: 'fabrication', name: 'Laser & Press Brake Fabrication', icon: <Layers className="w-4 h-4" /> }
     ]
   };
 
-  const handleModuleSelect = (moduleId: 'machining' | 'casting' | 'forging') => {
+  const handleModuleSelect = (moduleId: 'machining' | 'casting' | 'forging' | 'stamping') => {
     setSelectedModule(moduleId);
     setStep('submodule');
   };
@@ -87,7 +99,7 @@ export const NewEstimationModal: React.FC<NewEstimationModalProps> = ({ isOpen, 
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="w-full max-w-2xl bg-surface rounded-3xl shadow-2xl overflow-hidden border border-border"
+          className="w-full max-w-4xl bg-surface rounded-3xl shadow-2xl overflow-hidden border border-border"
         >
           <div className="p-6 border-b border-border flex justify-between items-center bg-background/50">
             <div>
@@ -111,7 +123,7 @@ export const NewEstimationModal: React.FC<NewEstimationModalProps> = ({ isOpen, 
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
-                  className="grid grid-cols-1 sm:grid-cols-3 gap-6"
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
                 >
                   {modules.map((m) => (
                     <button

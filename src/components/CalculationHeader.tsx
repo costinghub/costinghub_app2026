@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Hash, User as UserIcon, Calendar, Box, Activity } from 'lucide-react';
+import { Clock, Hash, User as UserIcon, Calendar, Box, Activity, Layers } from 'lucide-react';
 
 interface CalculationHeaderProps {
   calcId: string;
@@ -8,7 +8,7 @@ interface CalculationHeaderProps {
   customer: string;
   created: string;
   status?: string;
-  type: 'machining' | 'casting' | 'forging';
+  type: 'machining' | 'casting' | 'forging' | 'stamping';
 }
 
 export const CalculationHeader: React.FC<CalculationHeaderProps> = ({ 
@@ -23,7 +23,8 @@ export const CalculationHeader: React.FC<CalculationHeaderProps> = ({
   const colorMap = {
     machining: 'emerald',
     casting: 'indigo',
-    forging: 'rose'
+    forging: 'rose',
+    stamping: 'purple'
   };
   
   const color = colorMap[type] || 'primary';
@@ -40,6 +41,7 @@ export const CalculationHeader: React.FC<CalculationHeaderProps> = ({
                 {type === 'machining' && <Box className="w-6 h-6" />}
                 {type === 'casting' && <Activity className="w-6 h-6" />}
                 {type === 'forging' && <Activity className="w-6 h-6" />}
+                {type === 'stamping' && <Layers className="w-6 h-6" />}
              </div>
              <div>
                 <h1 className="text-3xl font-black text-text-primary tracking-tight leading-none">

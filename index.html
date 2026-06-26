@@ -27,6 +27,9 @@
     <meta property="twitter:image" content="https://i.ibb.co/L5B703Q/face-milling.png" />
 
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Contentsquare tracking code -->
     <script src="https://t.contentsquare.net/uxa/7a8e5154d485f.js"></script>
@@ -54,12 +57,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
       :root {
-        --color-primary: #8b5cf6; 
-        --color-primary-hover: #7b2cbf;
-        --color-primary-rgb: 139, 92, 246;
-        --color-secondary-accent: #db2777;
-        --color-background: #0b0f19; /* premium deep slate canvas */
-        --color-surface: #111827;    /* fine dark cards */
+        --color-primary: #a855f7; /* High-contrast vibrant Purple 500 for high-tech precision dark theme */
+        --color-primary-hover: #9333ea;
+        --color-primary-rgb: 168, 85, 247;
+        --color-secondary-accent: #c084fc; /* High-fidelity light purple */
+        --color-background: #090d16; /* Premium dark black canvas */
+        --color-surface: #111827;    /* Sleek obsidian card container */
         --color-text-primary: #f8fafc; 
         --color-text-secondary: #cbd5e1; 
         --color-text-muted: #94a3b8;   
@@ -67,16 +70,16 @@
         --color-text-input: var(--color-primary);
       }
       [data-theme="light"] {
-        --color-primary: #7c3aed; /* accessible violet */
+        --color-primary: #7c3aed; /* Professional Royal Purple 600 for accessible light theme */
         --color-primary-hover: #6d28d9;
         --color-primary-rgb: 124, 58, 237;
-        --color-secondary-accent: #db2777; 
-        --color-background: #f8fafc; /* smooth, cold light gray-slate background */
+        --color-secondary-accent: #db2777; /* Playful accent color */
+        --color-background: #f8fafc; /* Cold light gray-slate premium background */
         --color-surface: #ffffff;    
-        --color-text-primary: #0f172a; /* high legibility charcoal slate */
+        --color-text-primary: #0f172a; /* High-legibility Slate 900 */
         --color-text-secondary: #334155; 
         --color-text-muted: #64748b;   
-        --color-border: #e2e8f0; 
+        --color-border: #e2e8f0; /* Smooth border */
         --color-text-input: #0f172a;
       }
       *, ::before, ::after {
@@ -211,6 +214,10 @@
       tailwind.config = {
         theme: {
           extend: {
+            fontFamily: {
+              sans: ['"Plus Jakarta Sans"', '"Inter"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+              mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+            },
             colors: {
               background: 'var(--color-background)',
               surface: 'var(--color-surface)',

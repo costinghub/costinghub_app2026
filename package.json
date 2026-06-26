@@ -9,10 +9,12 @@
   },
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build",
+    "preinstall": "npm config set legacy-peer-deps true",
+    "fix-deps": "bash scripts/fix-deps.sh",
+    "build": "npm run fix-deps && vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "start": "node dist/server.cjs",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview",
-    "deploy:pages": "npx wrangler pages deploy ./dist --project-name costinghub --branch main --commit-message 'Deploy from CI'"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@google/genai": "^0.12.0",
@@ -31,18 +33,20 @@
     "react": "^18.3.1",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.3.1",
+    "react-is": "^19.2.7",
     "recharts": "^3.8.1",
     "tsx": "^4.21.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.0.0",
+    "@eslint/js": "^10.0.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^8.56.1",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.19",
-    "eslint": "^9.0.0",
+    "esbuild": "^0.28.1",
+    "eslint": "^10.0.0",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",

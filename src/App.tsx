@@ -24,13 +24,14 @@ import { LandingPage } from './pages/LandingPage';
 import { FeedbackPage } from './pages/FeedbackPage';
 import { CastingCalculatorPage } from './pages/CastingCalculatorPage';
 import { ForgingCalculatorPage } from './pages/ForgingCalculatorPage';
+import { StampingCalculatorPage } from './pages/StampingCalculatorPage';
 import { FeedbackListPage } from './pages/FeedbackListPage';
 import { SubscriptionPage } from './pages/SubscriptionPage';
 import { SubscriptionUpgradeModal } from './components/SubscriptionUpgradeModal';
 import { NewEstimationModal } from './components/NewEstimationModal';
 import { PlansManagementPage } from './pages/PlansManagementPage';
 import type { User, Calculation, MaterialMasterItem, Machine, Process, View, Tool, SubscriberInfo, Feedback, RegionCost, RegionCurrencyMap, CalculatorHeaderInfo, CalculationTemplate } from './types';
-import { SUPER_ADMIN_EMAILS, DEFAULT_PROCESSES, DEFAULT_MACHINES_MASTER, INITIAL_MATERIALS_MASTER, DEFAULT_TOOLS_MASTER, DEFAULT_REGION_CURRENCY_MAP, DEFAULT_CASTING_MATERIALS, DEFAULT_CASTING_MACHINES, DEFAULT_CASTING_PROCESSES, DEFAULT_CASTING_TOOLS, DEFAULT_FORGING_MATERIALS, DEFAULT_FORGING_MACHINES, DEFAULT_FORGING_PROCESSES, DEFAULT_FORGING_TOOLS } from './constants';
+import { SUPER_ADMIN_EMAILS, DEFAULT_PROCESSES, DEFAULT_MACHINES_MASTER, INITIAL_MATERIALS_MASTER, DEFAULT_TOOLS_MASTER, DEFAULT_REGION_CURRENCY_MAP, DEFAULT_CASTING_MATERIALS, DEFAULT_CASTING_MACHINES, DEFAULT_CASTING_PROCESSES, DEFAULT_CASTING_TOOLS, DEFAULT_FORGING_MATERIALS, DEFAULT_FORGING_MACHINES, DEFAULT_FORGING_PROCESSES, DEFAULT_FORGING_TOOLS, DEFAULT_STAMPING_MATERIALS, DEFAULT_STAMPING_MACHINES, DEFAULT_STAMPING_PROCESSES, DEFAULT_STAMPING_TOOLS } from './constants';
 
 declare global {
   interface Window {
@@ -44,10 +45,10 @@ const uuid = () => crypto.randomUUID();
 const App: React.FC = () => {
   const [session, setSession] = useState<{ user: User; access_token: string } | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [currentModule, setCurrentModule] = useState<'machining' | 'casting' | 'forging' | null>(() => {
+  const [currentModule, setCurrentModule] = useState<'machining' | 'casting' | 'forging' | 'stamping' | null>(() => {
     const saved = localStorage.getItem('costinghub_current_module');
     if (saved === 'null' || !saved) return null;
-    return saved as 'machining' | 'casting' | 'forging';
+    return saved as 'machining' | 'casting' | 'forging' | 'stamping';
   });
   const [calculations, setCalculations] = useState<Calculation[]>([]);
   const [materials, setMaterials] = useState<MaterialMasterItem[]>([]);
@@ -266,6 +267,32 @@ const App: React.FC = () => {
         localTools = [...localTools, ...seeded];
       }
 
+      // Check Stamping Seeding
+      if (localMaterials.filter(m => m.module === 'stamping').length === 0) {
+        console.log("No stamping materials. Auto-seeding default list.");
+        const seeded = DEFAULT_STAMPING_MATERIALS.map(m => ({ ...m, module: 'stamping' as const, id: uuid(), user_id: currentUser.id }));
+        await localDb.insertMultiple('materials', seeded);
+        localMaterials = [...localMaterials, ...seeded];
+      }
+      if (localMachines.filter(m => m.module === 'stamping').length === 0) {
+        console.log("No stamping machines. Auto-seeding default list.");
+        const seeded = DEFAULT_STAMPING_MACHINES.map(m => ({ ...m, module: 'stamping' as const, id: uuid(), user_id: currentUser.id }));
+        await localDb.insertMultiple('machines', seeded);
+        localMachines = [...localMachines, ...seeded];
+      }
+      if (localProcesses.filter(p => p.module === 'stamping').length === 0) {
+        console.log("No stamping processes. Auto-seeding default list.");
+        const seeded = DEFAULT_STAMPING_PROCESSES.map(p => ({ ...p, module: 'stamping' as const, id: uuid(), user_id: currentUser.id }));
+        await localDb.insertMultiple('processes', seeded);
+        localProcesses = [...localProcesses, ...seeded];
+      }
+      if (localTools.filter(t => t.module === 'stamping').length === 0) {
+        console.log("No stamping tools. Auto-seeding default list.");
+        const seeded = DEFAULT_STAMPING_TOOLS.map(t => ({ ...t, module: 'stamping' as const, id: uuid(), user_id: currentUser.id }));
+        await localDb.insertMultiple('tools', seeded);
+        localTools = [...localTools, ...seeded];
+      }
+
       setCalculations((await localDb.getAll<Calculation>('calculations')).filter(c => c.user_id === currentUser.id && !c.is_hidden));
       setMaterials(localMaterials);
       setMachines(localMachines);
@@ -371,18 +398,50 @@ const App: React.FC = () => {
   }, [currentView, session, fetchData]);
 
   const handleNavigation = useCallback((view: View) => {
-    if (view === 'newEstimation') {
-        setIsNewEstimationModalOpen(true);
-        return;
+    let resolvedView = view;
+    if (resolvedView === 'newEstimation') {
+        if (currentModule) {
+            setEditingCalculation(null);
+            setViewingCalculation(null);
+            resolvedView = currentModule === 'casting' ? 'castingCalculator' : currentModule === 'forging' ? 'forgingCalculator' : currentModule === 'stamping' ? 'stampingCalculator' : 'calculator';
+        } else {
+            setIsNewEstimationModalOpen(true);
+            return;
+        }
     }
 
-    if (view !== 'calculator' && view !== 'results') {
+    // Module-specific navigation guard
+    if (currentModule) {
+      if (currentModule === 'machining') {
+        const forbidden = ['castingCalculator', 'forgingCalculator', 'stampingCalculator', 'feedback'];
+        if (forbidden.includes(resolvedView)) {
+          resolvedView = 'calculations';
+        }
+      } else if (currentModule === 'casting') {
+        const forbidden = ['calculator', 'forgingCalculator', 'stampingCalculator', 'feedback'];
+        if (forbidden.includes(resolvedView)) {
+          resolvedView = 'calculations';
+        }
+      } else if (currentModule === 'forging') {
+        const forbidden = ['calculator', 'castingCalculator', 'stampingCalculator', 'feedback'];
+        if (forbidden.includes(resolvedView)) {
+          resolvedView = 'calculations';
+        }
+      } else if (currentModule === 'stamping') {
+        const forbidden = ['calculator', 'castingCalculator', 'forgingCalculator', 'feedback'];
+        if (forbidden.includes(resolvedView)) {
+          resolvedView = 'calculations';
+        }
+      }
+    }
+
+    if (resolvedView !== 'calculator' && resolvedView !== 'results') {
         setEditingCalculation(null);
         setViewingCalculation(null);
     }
     
     let path = '/';
-    switch (view) {
+    switch (resolvedView) {
         case 'auth': path = '/login'; break;
         case 'landing': path = '/'; break;
         case 'settings': path = '/settings'; break;
@@ -405,10 +464,10 @@ const App: React.FC = () => {
         try { window.history.pushState({}, '', path); } catch (e) {}
     }
     if (window.mixpanel) {
-        window.mixpanel.track('View Changed', { view: view });
+        window.mixpanel.track('View Changed', { view: resolvedView });
     }
-    setCurrentView(view);
-  }, []);
+    setCurrentView(resolvedView);
+  }, [currentModule]);
   
   const handleUpdateUser = useCallback(async (updatedUser: Partial<User>) => {
     if (!user) return;
@@ -544,8 +603,21 @@ const App: React.FC = () => {
   const isSuperAdmin = SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
 
   let content;
-  if (!currentModule && currentView !== 'auth' && currentView !== 'resetPassword' && currentView !== 'oauthConsent' && currentView !== 'settings') {
-    content = <ModuleSelectionPage onModuleSelect={(m) => setCurrentModule(m)} onNavigate={handleNavigation} />;
+  const isGeneralView = ['auth', 'resetPassword', 'oauthConsent', 'settings', 'subscription'].includes(currentView);
+  if (currentView === 'landing' || (!currentModule && !isGeneralView)) {
+    content = (
+      <LandingPage 
+        onNavigate={handleNavigation} 
+        user={user} 
+        session={session}
+        calculationsCount={calculations.filter(c => !c.is_hidden).length}
+        materialsCount={materials.length}
+        machinesCount={machines.length}
+        processesCount={processes.length}
+        toolsCount={tools.length}
+        onModuleChange={setCurrentModule}
+      />
+    );
   } else {
     switch (currentView) {
       case 'landing': 
@@ -554,11 +626,12 @@ const App: React.FC = () => {
             onNavigate={handleNavigation} 
             user={user} 
             session={session}
-            calculationsCount={calculations.filter(c => !c.is_hidden && (c.calculatorType || 'machining') === (currentModule || 'machining')).length}
-            materialsCount={materials.filter(m => (m.module || 'machining') === (currentModule || 'machining')).length}
-            machinesCount={machines.filter(m => (m.module || 'machining') === (currentModule || 'machining')).length}
-            processesCount={processes.filter(p => (p.module || 'machining') === (currentModule || 'machining')).length}
-            toolsCount={tools.filter(t => (t.module || 'machining') === (currentModule || 'machining')).length}
+            calculationsCount={calculations.filter(c => !c.is_hidden).length}
+            materialsCount={materials.length}
+            machinesCount={machines.length}
+            processesCount={processes.length}
+            toolsCount={tools.length}
+            onModuleChange={setCurrentModule}
           />
         ); 
         break;
@@ -566,7 +639,7 @@ const App: React.FC = () => {
         content = <ResetPasswordPage onPasswordReset={() => handleNavigation('landing')} />; 
         break;
       case 'calculations': 
-        content = <DashboardPage user={user} calculations={calculations.filter(c => (c.calculatorType || 'machining') === (currentModule || 'machining'))} onNavigate={handleNavigation} onEdit={(calc) => { setEditingCalculation(calc); handleNavigation(calc.calculatorType === 'forging' ? 'forgingCalculator' : calc.calculatorType === 'casting' ? 'castingCalculator' : 'calculator'); }} onDelete={async (id) => { const calc = calculations.find(c => c.id === id); if (calc) { await localDb.upsert('calculations', { ...calc, is_hidden: true }); } setCalculations(prev => prev.filter(c => c.id !== id)); }} onViewResults={(calc) => { setViewingCalculation(calc); handleNavigation('results'); }} onUpgrade={() => setIsUpgradeModalOpen(true)} isSuperAdmin={isSuperAdmin} theme={theme} activeModule={currentModule || 'machining'} />; 
+        content = <DashboardPage user={user} calculations={calculations.filter(c => (c.calculatorType || 'machining') === (currentModule || 'machining'))} onNavigate={handleNavigation} onEdit={(calc) => { setEditingCalculation(calc); handleNavigation(calc.calculatorType === 'forging' ? 'forgingCalculator' : calc.calculatorType === 'casting' ? 'castingCalculator' : calc.calculatorType === 'stamping' ? 'stampingCalculator' : 'calculator'); }} onDelete={async (id) => { const calc = calculations.find(c => c.id === id); if (calc) { await localDb.upsert('calculations', { ...calc, is_hidden: true }); } setCalculations(prev => prev.filter(c => c.id !== id)); }} onViewResults={(calc) => { setViewingCalculation(calc); handleNavigation('results'); }} onUpgrade={() => setIsUpgradeModalOpen(true)} isSuperAdmin={isSuperAdmin} theme={theme} activeModule={currentModule || 'machining'} />; 
         break;
       case 'calculator': 
         content = <CalculatorPage user={user} materials={materials.filter(m => (m.module || 'machining') === (currentModule || 'machining'))} machines={machines.filter(m => (m.module || 'machining') === (currentModule || 'machining'))} processes={processes.filter(p => (p.module || 'machining') === (currentModule || 'machining'))} tools={tools.filter(t => (t.module || 'machining') === (currentModule || 'machining'))} regionCosts={regionCosts} regionCurrencyMap={regionCurrencyMap} templates={templates} onSave={handleSaveCalculationFinal} onSaveDraft={handleSaveCalculationDraft} onAutoSaveDraft={handleAutoSaveCalculation} onSaveTemplate={async (tmpl) => { const saved = await localDb.upsert('calculation_templates', { ...tmpl, user_id: user.id }); setTemplates(prev => [...prev.filter(t => t.id !== saved.id), saved]); }} onDeleteTemplate={async (id) => { await localDb.delete('calculation_templates', id); setTemplates(prev => prev.filter(t => t.id !== id)); }} onBack={() => handleNavigation('calculations')} existingCalculation={editingCalculation} theme={theme} onNavigate={handleNavigation} onHeaderInfoChange={setCalculatorHeaderInfo} onAddTool={(t) => crudHandler('tools', 'add', t, setTools)} calculations={calculations} />; 
@@ -576,6 +649,9 @@ const App: React.FC = () => {
         break;
       case 'forgingCalculator': 
         content = <ForgingCalculatorPage user={user} onSave={handleSaveCalculationFinal} onSaveDraft={handleSaveCalculationDraft} onBack={() => handleNavigation('calculations')} existingCalculation={editingCalculation} theme={theme} onNavigate={handleNavigation} />; 
+        break;
+      case 'stampingCalculator': 
+        content = <StampingCalculatorPage user={user} onSave={handleSaveCalculationFinal} onSaveDraft={handleSaveCalculationDraft} onBack={() => handleNavigation('calculations')} existingCalculation={editingCalculation} theme={theme} onNavigate={handleNavigation} />; 
         break;
       case 'results': 
         content = <ResultsPage user={user} calculation={viewingCalculation} onBack={() => handleNavigation('calculations')} materials={materials.filter(m => (m.module || 'machining') === (currentModule || 'machining'))} />; 
@@ -657,9 +733,10 @@ const App: React.FC = () => {
             if (subType) {
               if (module === 'casting') localStorage.setItem('costinghub_initial_casting_type', subType);
               if (module === 'forging') localStorage.setItem('costinghub_initial_forging_type', subType);
+              if (module === 'stamping') localStorage.setItem('costinghub_initial_stamping_type', subType);
             }
             setIsNewEstimationModalOpen(false);
-            handleNavigation(module === 'casting' ? 'castingCalculator' : module === 'forging' ? 'forgingCalculator' : 'calculator');
+            handleNavigation(module === 'casting' ? 'castingCalculator' : module === 'forging' ? 'forgingCalculator' : module === 'stamping' ? 'stampingCalculator' : 'calculator');
           }}
         />
       )}
