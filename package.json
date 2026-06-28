@@ -10,12 +10,12 @@
   "scripts": {
     "dev": "tsx server.ts",
     "preinstall": "npm config set legacy-peer-deps true",
-    "fix-deps": "bash scripts/fix-deps.sh",
-    "build": "npm run fix-deps && vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "fix-deps": "node scripts/fix-deps.cjs",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
-    "deploy": "wrangler pages deploy dist --project-name costinghub",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy:pages": "wrangler pages deploy dist"
   },
   "dependencies": {
     "@google/genai": "^0.12.0",
@@ -28,6 +28,7 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "framer-motion": "^12.40.0",
+    "hono": "^4.12.27",
     "lucide-react": "^1.17.0",
     "motion": "^12.40.0",
     "pg": "^8.19.0",
