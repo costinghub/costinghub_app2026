@@ -1,1 +1,2 @@
-/* /index.html 200
+# Cloudflare Pages SPA routing is handled by _routes.json.
+# This file is intentionally left blank to avoid redirect loops.
