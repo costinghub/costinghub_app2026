@@ -86,6 +86,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, session, onUpd
         
         setFormData(prev => ({ ...prev, [name]: finalValue }));
     };
+
+    const handleCheckboxChange = (name: keyof User, checked: boolean) => {
+        setFormData(prev => ({ ...prev, [name]: checked }));
+    };
     
     const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -233,9 +237,27 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ user, session, onUpd
 
                  <Card className="mt-8">
                     <h2 className="text-2xl font-semibold text-primary border-b border-border pb-3 mb-6">Application Settings</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
                          <Input label="Calculation Number Prefix" name="calcPrefix" value={formData.calcPrefix || ''} onChange={handleInputChange} />
                          <Input label="Next Calculation Number" name="calcNextNumber" type="number" value={formData.calcNextNumber || 1} onChange={handleInputChange} />
+                         <div className="flex items-center space-x-3 pb-2.5">
+                             <input
+                                 type="checkbox"
+                                 id="auto_logout_idle_enabled"
+                                 name="auto_logout_idle_enabled"
+                                 checked={formData.auto_logout_idle_enabled !== false}
+                                 onChange={(e) => handleCheckboxChange('auto_logout_idle_enabled', e.target.checked)}
+                                 className="h-5 w-5 rounded border-border text-primary focus:ring-primary/30 cursor-pointer accent-primary"
+                             />
+                             <div className="flex flex-col">
+                                 <label htmlFor="auto_logout_idle_enabled" className="text-sm font-semibold text-text-primary cursor-pointer">
+                                     Inactivity Auto Logout
+                                 </label>
+                                 <span className="text-xs text-text-muted">
+                                     Auto-logout after 30 minutes of inactivity.
+                                 </span>
+                             </div>
+                         </div>
                     </div>
                 </Card>
 

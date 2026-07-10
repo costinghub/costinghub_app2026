@@ -7,7 +7,8 @@ import {
   X,
   Target,
   Cpu,
-  Layers
+  Layers,
+  Clock
 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
@@ -16,12 +17,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface NewEstimationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (module: 'machining' | 'casting' | 'forging' | 'stamping', subType?: string) => void;
+  onSelect: (module: 'machining' | 'casting' | 'forging' | 'stamping' | 'machineHourRate', subType?: string) => void;
 }
 
 export const NewEstimationModal: React.FC<NewEstimationModalProps> = ({ isOpen, onClose, onSelect }) => {
   const [step, setStep] = useState<'module' | 'submodule'>('module');
-  const [selectedModule, setSelectedModule] = useState<'machining' | 'casting' | 'forging' | 'stamping' | null>(null);
+  const [selectedModule, setSelectedModule] = useState<'machining' | 'casting' | 'forging' | 'stamping' | 'machineHourRate' | null>(null);
 
   const modules = [
     { 
@@ -51,6 +52,13 @@ export const NewEstimationModal: React.FC<NewEstimationModalProps> = ({ isOpen, 
       icon: <Layers className="w-6 h-6" />, 
       color: 'purple',
       description: 'Progressive die, transfer press, and laser cut/bend fabrication should-cost models.'
+    },
+    {
+      id: 'machineHourRate' as const,
+      name: 'Machine Hour Rate',
+      icon: <Clock className="w-6 h-6" />,
+      color: 'sky',
+      description: 'Bespoke MHR cost workbook detailing interest, straight-line depreciation cross-checks, rented space, and power/maintenance load ratios.'
     }
   ];
 
@@ -78,12 +86,17 @@ export const NewEstimationModal: React.FC<NewEstimationModalProps> = ({ isOpen, 
       { id: 'progressive', name: 'Progressive Die Stamping', icon: <Layers className="w-4 h-4" /> },
       { id: 'tandem', name: 'Tandem & Transfer Press', icon: <Layers className="w-4 h-4" /> },
       { id: 'fabrication', name: 'Laser & Press Brake Fabrication', icon: <Layers className="w-4 h-4" /> }
-    ]
+    ],
+    machineHourRate: []
   };
 
-  const handleModuleSelect = (moduleId: 'machining' | 'casting' | 'forging' | 'stamping') => {
-    setSelectedModule(moduleId);
-    setStep('submodule');
+  const handleModuleSelect = (moduleId: 'machining' | 'casting' | 'forging' | 'stamping' | 'machineHourRate') => {
+    if (moduleId === 'machineHourRate') {
+      onSelect('machineHourRate');
+    } else {
+      setSelectedModule(moduleId);
+      setStep('submodule');
+    }
   };
 
   const handleBack = () => {
@@ -99,9 +112,9 @@ export const NewEstimationModal: React.FC<NewEstimationModalProps> = ({ isOpen, 
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="w-full max-w-4xl bg-surface rounded-3xl shadow-2xl overflow-hidden border border-border"
+          className="w-full max-w-6xl bg-surface rounded-3xl shadow-2xl overflow-hidden border border-border"
         >
-          <div className="p-6 border-b border-border flex justify-between items-center bg-background/50">
+          <div className="p-6 border-b border-border flex justify-between items-center bg-background/50 bg-opacity-50">
             <div>
               <h2 className="text-2xl font-black text-text-primary tracking-tight">
                 {step === 'module' ? 'New Estimation' : `Configure ${selectedModule ? selectedModule.charAt(0).toUpperCase() + selectedModule.slice(1) : ''}`}
@@ -123,7 +136,7 @@ export const NewEstimationModal: React.FC<NewEstimationModalProps> = ({ isOpen, 
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
-                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4"
                 >
                   {modules.map((m) => (
                     <button

@@ -93,6 +93,22 @@ export const AuthPage: React.FC<AuthPageProps> = ({ successMessage, setSuccessMe
     } catch (e) {}
   };
 
+  const getPasswordStrength = (pass: string) => {
+    if (!pass) return { score: 0, label: '', color: 'bg-transparent' };
+    let score = 0;
+    if (pass.length > 5) score += 1;
+    if (pass.length > 8) score += 1;
+    if (/[A-Z]/.test(pass)) score += 1;
+    if (/[0-9]/.test(pass)) score += 1;
+    if (/[^A-Za-z0-9]/.test(pass)) score += 1;
+    
+    if (score < 2) return { score, label: 'Weak', color: 'bg-red-500' };
+    if (score < 4) return { score, label: 'Fair', color: 'bg-yellow-500' };
+    return { score, label: 'Strong', color: 'bg-green-500' };
+  };
+
+  const strength = getPasswordStrength(password);
+
   return (
     <div className="w-full max-w-md mx-auto py-12 md:py-24 animate-fade-in">
       <Card className="transform transition-all duration-500 hover:shadow-glow-primary hover:scale-[1.01] animate-fade-in-up">
@@ -101,8 +117,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ successMessage, setSuccessMe
                 <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-white mb-2 shadow-lg shadow-primary/20">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9Z"/></svg>
                 </div>
-                <h1 className="text-3xl font-bold tracking-wide text-text-primary">
-                    Costing<span className="text-primary font-extrabold ml-1">Hub</span>
+                <h1 className="text-3xl font-bold tracking-wide">
+                    <span className="text-[#7c3aed] dark:text-[#a855f7]">Costing</span><span className="text-black dark:text-white font-extrabold ml-1">Hub</span>
                 </h1>
                 <p className="text-xs text-text-muted font-bold tracking-widest uppercase">All Costs. One Hub.</p>
             </div>
@@ -131,6 +147,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ successMessage, setSuccessMe
           </div>
           <div className="animate-fade-in-up delay-300 relative">
               <Input label="Password" type="password" name="password" value={password} onChange={handlePasswordChange} required disabled={loading}/>
+              {!isLogin && password && (
+                  <div className="mt-2 text-xs flex items-center justify-between">
+                      <span className="text-text-muted">Password Strength:</span>
+                      <span className={`font-semibold ${strength.color.replace('bg-', 'text-')}`}>{strength.label}</span>
+                  </div>
+              )}
               {isLogin && (
                  <button 
                     type="button" 

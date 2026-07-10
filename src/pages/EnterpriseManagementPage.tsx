@@ -316,6 +316,13 @@ export const EnterpriseManagementPage: React.FC<EnterpriseManagementPageProps> =
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userForm.email,
         password: defaultPassword,
+        options: {
+          data: {
+            name: userForm.name,
+            full_name: userForm.name,
+            role: userForm.role,
+          }
+        }
       });
       if (authError) {
         console.warn("Supabase Auth registration yielded message info: ", authError.message);

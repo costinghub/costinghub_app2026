@@ -274,7 +274,7 @@ export interface Calculation {
   duration_seconds?: number;
   parent_id?: string | null;
   revision_number?: number | null;
-  calculatorType?: 'machining' | 'casting' | 'forging' | 'stamping';
+  calculatorType?: 'machining' | 'casting' | 'forging' | 'stamping' | 'machineHourRate';
 }
 
 export interface User {
@@ -308,6 +308,7 @@ export interface User {
   gemini_api_key?: string | null;
   claude_api_key?: string | null;
   openai_api_key?: string | null;
+  auto_logout_idle_enabled?: boolean;
 }
 
 export interface LandingPageProps {
@@ -319,7 +320,7 @@ export interface LandingPageProps {
   machinesCount?: number;
   processesCount?: number;
   toolsCount?: number;
-  onModuleChange?: (module: 'machining' | 'casting' | 'forging' | 'stamping' | null) => void;
+  onModuleChange?: (module: 'machining' | 'casting' | 'forging' | 'stamping' | 'machineHourRate' | null) => void;
 }
 
 export interface BackupData {
@@ -555,6 +556,8 @@ export type View =
   | 'castingCalculator'
   | 'forgingCalculator'
   | 'stampingCalculator'
+  | 'machineHourRate'
+  | 'architecture'
   | 'results' 
   | 'materials' 
   | 'machines' 
@@ -573,6 +576,7 @@ export type View =
   | 'reports'
   | 'resetPassword'
   | 'oauthConsent'
+  | 'projectManagement'
   | 'plansList';
 
 export interface SubscriptionPlan {
@@ -641,6 +645,17 @@ export interface CastingInput {
   safetyFactor?: number; // for tonnage calc
   numberOfCavities?: number;
 
+  // Moulding Box & Cavity Calculation
+  mouldingBoxSelection?: string; // Preset or 'custom'
+  mouldingBoxLengthMm?: number;
+  mouldingBoxWidthMm?: number;
+  mouldingBoxHeightMm?: number;
+  cavityCalculationAuto?: boolean;
+  partLengthMm?: number;
+  partWidthMm?: number;
+  partHeightMm?: number;
+  safetyMarginMm?: number;
+
   // Investment Casting specific
   waxWeightKg?: number;
   waxCostPerKg?: number;
@@ -696,6 +711,12 @@ export interface CastingResult {
   waxCostPerPart?: number;
   gatingWeightKg?: number;
   
+  // Moulding Box & Cavity Results
+  recommendedCavities?: number;
+  boxVolumeCm3?: number;
+  sandWeightKg?: number;
+  isHeightWarning?: boolean;
+  
   baseManufacturingCost: number;
   
   markupCosts: MarkupCosts;
@@ -722,6 +743,11 @@ export interface ForgingInput {
   // Forging Material Info
   materialCategory: string; // e.g. "Alloy Steel", "Carbon Steel"
   materialType: string; // e.g. "AISI 4140", "AISI 1045", "Aluminum 6061"
+  billetShape?: 'Round' | 'Rectangular';
+  billetDiameter?: number;
+  billetLength?: number;
+  billetWidth?: number;
+  billetThickness?: number;
   finishedPartWeightKg: number;
   materialCostPerKg: number;
   materialDensityGcm3: number;

@@ -455,5 +455,40 @@ CREATE POLICY "Enable insert access for admins" ON subscription_plans FOR INSERT
 CREATE POLICY "Enable update access for admins" ON subscription_plans FOR UPDATE USING (is_admin());
 CREATE POLICY "Enable delete access for admins" ON subscription_plans FOR DELETE USING (is_admin());
 
+-- Trigger to automatically create a profile for new users
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  -- Prevent unique constraint violation if a local/mock profile exists with this email
+  DELETE FROM public.profiles WHERE email = NEW.email AND id != NEW.id::text;
+
+  INSERT INTO public.profiles (id, email, name, role, company_name, "companyName", subscription_status)
+  VALUES (
+    NEW.id::text,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', ''),
+    COALESCE(NEW.raw_user_meta_data->>'role', 'user'),
+    NEW.raw_user_meta_data->>'company_name',
+    NEW.raw_user_meta_data->>'companyName',
+    'active'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    name = COALESCE(EXCLUDED.name, public.profiles.name),
+    company_name = COALESCE(EXCLUDED.company_name, public.profiles.company_name),
+    "companyName" = COALESCE(EXCLUDED."companyName", public.profiles."companyName");
+    
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 
 

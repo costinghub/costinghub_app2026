@@ -549,8 +549,8 @@ export const StampingCalculatorPage: React.FC<StampingCalculatorPageProps> = ({
               <Layers className="w-6 h-6 text-primary" />
               Stamping & Sheet Metal Should-Cost Model
             </h1>
-            <p className="text-xs text-text-muted font-bold tracking-widest uppercase mt-0.5">
-              CostingHub Operations • Full Lifecycle Estimator
+            <p className="text-xs text-text-muted font-bold tracking-widest uppercase mt-1">
+              <span className="text-[#7c3aed] dark:text-[#a855f7]">Costing</span><span className="text-black dark:text-white font-extrabold">Hub</span> Operations • Full Lifecycle Estimator
             </p>
           </div>
         </div>

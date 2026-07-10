@@ -131,7 +131,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   toolsCount = 0,
   onModuleChange,
 }) => {
-  const [activeTab, setActiveTab] = useState<'machining' | 'casting' | 'forging' | 'stamping'>('machining');
+  const [activeTab, setActiveTab] = useState<'machining' | 'casting' | 'forging' | 'stamping' | 'projects' | 'machineHourRate'>('machining');
   const isPaidUser = (user.plan_name || 'Free').toLowerCase() !== 'free';
   const isEnterprise = (user.plan_name || 'Free').toLowerCase().includes('enterprise');
   const avatarUrl = session?.user?.user_metadata?.avatar_url;
@@ -141,8 +141,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex flex-col gap-0.5 items-start">
-            <h1 className="text-2xl font-bold tracking-wide text-text-primary">
-              Costing<span className="text-primary font-extrabold ml-1">Hub</span>
+            <h1 className="text-2xl font-bold tracking-wide">
+              <span className="text-[#7c3aed] dark:text-[#a855f7]">Costing</span><span className="text-black dark:text-white font-extrabold ml-1">Hub</span>
             </h1>
             <p className="text-xs text-text-muted font-semibold tracking-normal mt-0.5">All Costs. One Hub.</p>
         </div>
@@ -211,7 +211,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </h2>
             
             <div className="flex bg-background p-1 rounded-xl border border-border">
-              {(['machining', 'casting', 'forging', 'stamping'] as const).map((tab) => (
+              {(['machining', 'casting', 'forging', 'stamping', 'machineHourRate', 'projects'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -221,7 +221,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       : 'text-text-muted hover:text-text-primary'
                   }`}
                 >
-                  {tab}
+                  {tab === 'machineHourRate' ? 'MHR' : tab}
                 </button>
               ))}
             </div>
@@ -327,6 +327,58 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   </div>
                 </button>
               ))}
+
+              {activeTab === 'machineHourRate' && (
+                <button 
+                  id="btn-launch-machine-hour-rate"
+                  onClick={() => {
+                    if (onModuleChange) onModuleChange('machineHourRate');
+                    onNavigate('machineHourRate');
+                  }}
+                  className="group relative p-6 bg-gradient-to-br from-sky-500/10 to-transparent hover:from-sky-500 hover:to-indigo-600 border border-sky-500/30 hover:border-sky-600 rounded-2xl text-left transition-all duration-300 select-none cursor-pointer flex flex-col justify-between shadow-xs hover:shadow-lg hover:-translate-y-1 col-span-full md:col-span-2"
+                >
+                  <div className="p-3 bg-sky-500/10 group-hover:bg-white/20 rounded-xl max-w-max text-sky-600 dark:text-sky-400 group-hover:text-white mb-8">
+                    <Clock className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-xl text-text-primary group-hover:text-white transition-colors">
+                      Machine Hour Rate (MHR) Costing
+                    </h3>
+                    <p className="text-xs text-text-secondary group-hover:text-white/80 transition-colors mt-2 leading-relaxed max-w-md">
+                      Bespoke MHR cost workbook detailing interest, straight-line depreciation cross-checks, rented space, and power/maintenance load ratios.
+                    </p>
+                    <div className="mt-4 flex items-center text-xs font-black text-sky-600 group-hover:text-white uppercase tracking-widest">
+                      Launch Module <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </div>
+                </button>
+              )}
+
+              {activeTab === 'projects' && (
+                <button 
+                  id="btn-launch-projects-hub"
+                  onClick={() => {
+                    if (onModuleChange) onModuleChange(null);
+                    onNavigate('projectManagement');
+                  }}
+                  className="group relative p-6 bg-gradient-to-br from-purple-500/10 to-transparent hover:from-[#7c3aed] hover:to-indigo-600 border border-purple-500/30 hover:border-purple-600 rounded-2xl text-left transition-all duration-300 select-none cursor-pointer flex flex-col justify-between shadow-xs hover:shadow-lg hover:-translate-y-1 col-span-full"
+                >
+                  <div className="p-3 bg-purple-500/10 group-hover:bg-white/20 rounded-xl max-w-max text-purple-600 dark:text-purple-400 group-hover:text-white mb-8">
+                    <Layers className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-xl text-text-primary group-hover:text-white transition-colors">
+                      Consolidated Project Management Hub
+                    </h3>
+                    <p className="text-xs text-text-secondary group-hover:text-white/80 transition-colors mt-2 leading-relaxed max-w-2xl font-medium">
+                      Consolidate your casting, forging, and stamping calculation results into unified product assemblies. Append multi-stage machining processes (milling, turning, drilling) to calculate complete finished part costs, adjust assembly and freight markups, and export beautiful PDF Costing Sheets.
+                    </p>
+                    <div className="mt-4 flex items-center text-xs font-black text-purple-600 group-hover:text-white uppercase tracking-widest">
+                      Launch Project Hub <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </div>
+                </button>
+              )}
           </div>
       </div>
 

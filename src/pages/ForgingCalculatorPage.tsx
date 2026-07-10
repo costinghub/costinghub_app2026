@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Clock, Hammer, Layers, ShieldCheck, TrendingUp, AlertCircle, Flame, Scissors, Zap, HelpCircle, Info } from 'lucide-react';
+import { Clock, Hammer, Layers, ShieldCheck, TrendingUp, AlertCircle, Flame, Scissors, Zap, HelpCircle, Info, ChevronRight, ChevronLeft, Check, Printer } from 'lucide-react';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
@@ -92,6 +92,9 @@ const INITIAL_FORGING_INPUT: ForgingInput = {
   currency: 'USD',
   materialCategory: 'Alloy Steel',
   materialType: 'AISI 4140 Alloy Steel',
+  billetShape: 'Round',
+  billetDiameter: 60,
+  billetLength: 120,
   finishedPartWeightKg: 2.4,
   materialCostPerKg: 2.80,
   materialDensityGcm3: 7.85,
@@ -173,6 +176,7 @@ export const ForgingCalculatorPage: React.FC<ForgingCalculatorPageProps> = ({
   });
 
   const [showProcessGuide, setShowProcessGuide] = useState(false);
+  const [billetStep, setBilletStep] = useState(1);
 
   const selectedMaterial = FORGING_MATERIAL_PRESETS.find(m => m.name === formData.materialType);
   const materialCategory = selectedMaterial?.category || 'Carbon Steel';
@@ -196,11 +200,51 @@ export const ForgingCalculatorPage: React.FC<ForgingCalculatorPageProps> = ({
     setSaveStatus('unsaved');
   }, [formData]);
 
+  // Auto-calculate finished weight from raw dimensions
+  useEffect(() => {
+    let vol = 0; // mm^3
+    if (formData.billetShape === 'Round') {
+      const d = formData.billetDiameter || 0;
+      const l = formData.billetLength || 0;
+      vol = Math.PI * Math.pow(d / 2, 2) * l;
+    } else {
+      const w = formData.billetWidth || 0;
+      const t = formData.billetThickness || 0;
+      const l = formData.billetLength || 0;
+      vol = w * t * l;
+    }
+    
+    // Weight in kg (vol in mm3 * density g/cm3 * 10^-6)
+    const rawWeightKg = vol * formData.materialDensityGcm3 * 0.000001;
+    
+    if (rawWeightKg > 0) {
+      const yieldR = formData.yieldRate || 75;
+      const scaleLoss = formData.scaleLossPercent || 0;
+      const effectiveYield = yieldR / 100;
+      const scaleLossFactor = scaleLoss / 100;
+      
+      const finishedWeight = rawWeightKg * (1 - scaleLossFactor) * effectiveYield;
+      setFormData(prev => ({
+        ...prev,
+        finishedPartWeightKg: parseFloat(finishedWeight.toFixed(4))
+      }));
+    }
+  }, [
+    formData.billetShape,
+    formData.billetDiameter,
+    formData.billetLength,
+    formData.billetWidth,
+    formData.billetThickness,
+    formData.materialDensityGcm3,
+    formData.yieldRate,
+    formData.scaleLossPercent
+  ]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: ['annualVolume', 'batchVolume', 'finishedPartWeightKg', 'partSurfaceAreaM2'].includes(name)
+      [name]: ['annualVolume', 'batchVolume', 'finishedPartWeightKg', 'partSurfaceAreaM2', 'billetDiameter', 'billetLength', 'billetWidth', 'billetThickness'].includes(name)
         ? (parseFloat(value) || 0)
         : value,
     }));
@@ -429,6 +473,10 @@ export const ForgingCalculatorPage: React.FC<ForgingCalculatorPageProps> = ({
             <Button type="button" onClick={() => onNavigate('calculator')} variant="outline" size="sm">
                 Switch to Machining
             </Button>
+            <Button type="button" onClick={() => window.print()} variant="outline" size="sm">
+                <Printer className="w-4 h-4 mr-1.5" />
+                Export PDF
+            </Button>
             <Button type="button" onClick={handleSaveDraftClick} variant="secondary" size="sm">
                 Save Draft
             </Button>
@@ -508,141 +556,315 @@ export const ForgingCalculatorPage: React.FC<ForgingCalculatorPageProps> = ({
                 Raw Billet & Material Alloy Specification
               </h2>
 
-              <div className="bg-background/40 border border-border p-4 rounded-xl mb-6">
-                <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
-                  Select Predefined Billet Steel / Alloy
-                </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <select
-                    className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text-primary focus:ring-2 focus:ring-primary focus:border-transparent cursor-pointer"
-                    value={formData.materialType}
-                    onChange={handleMaterialChange}
-                  >
-                    {FORGING_MATERIAL_PRESETS.map(m => (
-                      <option key={m.name} value={m.name}>
-                        {m.name} ({m.category})
-                      </option>
-                    ))}
-                  </select>
-                  <div className="flex gap-4 items-center text-xs font-mono bg-surface border border-dashed border-border px-4 py-2.5 rounded-lg">
-                    <div>
-                      <span className="text-text-muted uppercase text-[9px] block">Material Density</span>
-                      <strong className="text-text-primary text-sm">{formData.materialDensityGcm3} g/cm³</strong>
+              <div className="space-y-4">
+                {/* Stepper Header */}
+                <div className="flex items-center justify-between px-2 pb-2">
+                  {[
+                    { step: 1, title: 'Material' },
+                    { step: 2, title: 'Dimensions' },
+                    { step: 3, title: 'Efficiency' }
+                  ].map((s, idx) => (
+                    <div key={s.step} className="flex items-center flex-1">
+                      <div className="flex flex-col items-center flex-1">
+                        <button
+                          type="button"
+                          onClick={() => setBilletStep(s.step)}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-colors mb-1 ${
+                            billetStep === s.step
+                              ? 'bg-rose-600 text-white ring-4 ring-rose-500/20'
+                              : billetStep > s.step
+                              ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400'
+                              : 'bg-surface text-text-muted border border-border hover:bg-background/80'
+                          }`}
+                        >
+                          {s.step}
+                        </button>
+                        <span className={`text-[10px] uppercase font-bold tracking-wider ${billetStep === s.step ? 'text-rose-600 dark:text-rose-400' : 'text-text-muted'}`}>
+                          {s.title}
+                        </span>
+                      </div>
+                      {idx < 2 && (
+                        <div className="flex-1 px-2">
+                          <div className={`h-0.5 rounded-full w-full ${billetStep > s.step ? 'bg-rose-200 dark:bg-rose-800' : 'bg-border'}`} />
+                        </div>
+                      )}
                     </div>
-                    <div className="w-px h-8 bg-border border-l border-dashed" />
-                    <div>
-                      <span className="text-text-muted uppercase text-[9px] block">Raw Billet Price</span>
-                      <strong className="text-text-primary text-sm">${formData.materialCostPerKg}/kg</strong>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Input
-                  label="Finished Forged Weight"
-                  name="finishedPartWeightKg"
-                  type="number"
-                  step="any"
-                  value={formData.finishedPartWeightKg}
-                  onChange={handleInputChange}
-                  error={errors.finishedPartWeightKg}
-                  unit="kg"
-                />
-
-                <div className="space-y-1">
-                  <label className="block text-sm font-medium text-text-secondary">Forging Yield Rate (%)</label>
-                  <input
-                    type="range"
-                    min="35"
-                    max="98"
-                    value={formData.yieldRate}
-                    onInput={(e: any) => setFormData(prev => ({ ...prev, yieldRate: parseFloat(e.target.value) || 75 }))}
-                    onChange={() => {}} 
-                    className="w-full h-1.5 bg-background rounded-lg cursor-pointer accent-rose-600 mt-3"
-                  />
-                  <div className="flex justify-between text-xs font-mono text-text-secondary mt-1">
-                    <span>35% (Heavy Flash)</span>
-                    <span className="text-rose-600 dark:text-rose-400 font-bold">{formData.yieldRate}%</span>
-                    <span>98% (Flashless Cold)</span>
-                  </div>
+                  ))}
                 </div>
 
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <label className="block text-sm font-medium text-text-secondary">Furnace Scale Loss (%)</label>
-                    <button 
-                      type="button"
-                      onClick={() => setShowProcessGuide(!showProcessGuide)}
-                      className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${
-                        showProcessGuide 
-                          ? 'bg-rose-600 text-white shadow-sm' 
-                          : 'bg-rose-50/50 text-rose-600 border border-rose-200 dark:bg-rose-950/20 dark:border-rose-800'
-                      }`}
-                    >
-                      <Info className="w-3 h-3" />
-                      {showProcessGuide ? 'Hide Guide' : 'Process Guide'}
-                    </button>
-                  </div>
-                  
-                  {showProcessGuide && (
-                    <div className="mt-2 p-3 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-800 rounded-lg animate-in fade-in slide-in-from-top-1 duration-200">
-                      <div className="flex gap-2">
-                        <HelpCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                        <div className="space-y-1">
-                          <p className="text-xs font-bold text-rose-700 dark:text-rose-400">Contextual Tip for {materialCategory}:</p>
-                          <p className="text-[11px] text-text-secondary leading-relaxed italic">
-                            "{scaleLossTip}"
-                          </p>
+                {/* Step 1: Material Selection */}
+                {billetStep === 1 && (
+                  <div className="bg-background/50 border border-border p-5 rounded-xl space-y-4 transition-all animate-in fade-in slide-in-from-right-4 duration-300">
+                    <h3 className="text-sm font-bold text-text-primary flex items-center gap-2 mb-4">
+                      Material Specification
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 gap-4 mt-2">
+                      <select
+                        className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text-primary focus:ring-2 focus:ring-rose-600 focus:border-transparent cursor-pointer transition-all"
+                        value={formData.materialType}
+                        onChange={handleMaterialChange}
+                      >
+                        {FORGING_MATERIAL_PRESETS.map(m => (
+                          <option key={m.name} value={m.name}>
+                            {m.name} ({m.category})
+                          </option>
+                        ))}
+                      </select>
+                      <div className="flex gap-4 items-center justify-start text-xs font-mono bg-surface border border-dashed border-border px-4 py-3 rounded-lg">
+                        <div>
+                          <span className="text-text-muted uppercase text-[9px] block">Material Density</span>
+                          <strong className="text-text-primary text-sm">{formData.materialDensityGcm3} g/cm³</strong>
+                        </div>
+                        <div className="w-px h-8 bg-border border-l border-dashed" />
+                        <div>
+                          <span className="text-text-muted uppercase text-[9px] block">Raw Billet Price</span>
+                          <strong className="text-text-primary text-sm">${formData.materialCostPerKg}/kg</strong>
                         </div>
                       </div>
                     </div>
-                  )}
 
-                  {/* Auto-Suggest Preset Drop-down based on the selected material group */}
-                  <div className="mt-2 space-y-1">
-                    <label className="block text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider">
-                      Auto-Suggest Preset ({materialCategory})
-                    </label>
-                    <select
-                      className="block w-full px-3 py-2 text-xs border border-border rounded-xl bg-background/50 text-text-primary focus:outline-none focus:border-rose-600 focus:ring-1 focus:ring-rose-600 transition-all cursor-pointer"
-                      value={TYPICAL_SCALE_LOSS_PRESETS[materialCategory]?.some(preset => Math.abs(preset.value - formData.scaleLossPercent) < 0.001) ? TYPICAL_SCALE_LOSS_PRESETS[materialCategory].find(p => Math.abs(p.value - formData.scaleLossPercent) < 0.001)?.value : ""}
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value);
-                        if (!isNaN(val)) {
-                          setFormData(prev => ({ ...prev, scaleLossPercent: val }));
-                        }
-                      }}
-                    >
-                      <option value="">-- Choose a typical heating preset configuration --</option>
-                      {TYPICAL_SCALE_LOSS_PRESETS[materialCategory]?.map((preset, idx) => (
-                        <option key={idx} value={preset.value}>
-                          {preset.label}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex justify-end pt-2">
+                      <button 
+                        type="button" 
+                        onClick={() => setBilletStep(2)}
+                        className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
+                      >
+                        Continue to Dimensions
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
+                )}
 
-                  <input
-                    type="range"
-                    min="0"
-                    max="10"
-                    step="0.05"
-                    value={formData.scaleLossPercent}
-                    onInput={(e: any) => setFormData(prev => ({ ...prev, scaleLossPercent: parseFloat(e.target.value) || 0 }))}
-                    onChange={() => {}}
-                    className="w-full h-1.5 bg-background rounded-lg cursor-pointer accent-rose-600 mt-3"
-                  />
-                  <div className="flex justify-between text-xs font-mono text-text-secondary mt-1">
-                    <span>0% (Scale-free)</span>
-                    <span className="text-rose-600 dark:text-rose-400 font-bold">{formData.scaleLossPercent.toFixed(2)}%</span>
-                    <span>10% (High Scale)</span>
+                {/* Step 2: Billet Dimensions */}
+                {billetStep === 2 && (
+                  <div className="bg-background/50 border border-border p-5 rounded-xl space-y-4 transition-all animate-in fade-in slide-in-from-right-4 duration-300">
+                    <h3 className="text-sm font-bold text-text-primary flex items-center gap-2 mb-4">
+                      Raw Billet Dimensions
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                      <div className="col-span-1 md:col-span-2">
+                        <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
+                          Billet Shape
+                        </label>
+                        <select
+                          name="billetShape"
+                          className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text-primary focus:ring-2 focus:ring-rose-600 focus:border-transparent cursor-pointer transition-all"
+                          value={formData.billetShape || 'Round'}
+                          onChange={(e) => setFormData(prev => ({ ...prev, billetShape: e.target.value as 'Round' | 'Rectangular' }))}
+                        >
+                          <option value="Round">Round Bar</option>
+                          <option value="Rectangular">Rectangular / Square Billet</option>
+                        </select>
+                      </div>
+
+                      {formData.billetShape === 'Round' ? (
+                        <>
+                          <Input
+                            label="Billet Diameter"
+                            name="billetDiameter"
+                            type="number"
+                            step="any"
+                            value={formData.billetDiameter}
+                            onChange={handleInputChange}
+                            unit="mm"
+                          />
+                          <Input
+                            label="Billet Length"
+                            name="billetLength"
+                            type="number"
+                            step="any"
+                            value={formData.billetLength}
+                            onChange={handleInputChange}
+                            unit="mm"
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <Input
+                            label="Billet Width"
+                            name="billetWidth"
+                            type="number"
+                            step="any"
+                            value={formData.billetWidth}
+                            onChange={handleInputChange}
+                            unit="mm"
+                          />
+                          <Input
+                            label="Billet Thickness"
+                            name="billetThickness"
+                            type="number"
+                            step="any"
+                            value={formData.billetThickness}
+                            onChange={handleInputChange}
+                            unit="mm"
+                          />
+                          <Input
+                            label="Billet Length"
+                            name="billetLength"
+                            type="number"
+                            step="any"
+                            value={formData.billetLength}
+                            onChange={handleInputChange}
+                            unit="mm"
+                          />
+                        </>
+                      )}
+                    </div>
+                    
+                    <div className="bg-rose-50/30 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 p-3 rounded-lg mt-4 flex justify-between items-center">
+                      <span className="text-xs text-text-secondary">Auto-Calculated Finished Weight:</span>
+                      <span className="text-sm font-bold text-rose-600 dark:text-rose-400">{formData.finishedPartWeightKg} kg</span>
+                    </div>
+
+                    <div className="flex justify-between pt-4">
+                      <button 
+                        type="button" 
+                        onClick={() => setBilletStep(1)}
+                        className="px-5 py-2 bg-surface hover:bg-background border border-border text-text-primary text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Back
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={() => setBilletStep(3)}
+                        className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
+                      >
+                        Continue to Efficiency
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Step 3: Process Efficiency */}
+                {billetStep === 3 && (
+                  <div className="bg-background/50 border border-border p-5 rounded-xl space-y-6 transition-all animate-in fade-in slide-in-from-right-4 duration-300">
+                    <h3 className="text-sm font-bold text-text-primary flex items-center gap-2 mb-4">
+                      Efficiency & Process Losses
+                    </h3>
+                    
+                    <div className="space-y-6 mt-2">
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-text-secondary">Forging Yield Rate (%)</label>
+                        <input
+                          type="range"
+                          min="35"
+                          max="98"
+                          value={formData.yieldRate}
+                          onInput={(e: any) => setFormData(prev => ({ ...prev, yieldRate: parseFloat(e.target.value) || 75 }))}
+                          onChange={() => {}} 
+                          className="w-full h-1.5 bg-background rounded-lg cursor-pointer accent-rose-600"
+                        />
+                        <div className="flex justify-between text-xs font-mono text-text-secondary">
+                          <span>35% (Heavy Flash)</span>
+                          <span className="text-rose-600 dark:text-rose-400 font-bold">{formData.yieldRate}%</span>
+                          <span>98% (Flashless Cold)</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 pt-4 border-t border-border border-dashed">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                          <label className="block text-sm font-medium text-text-secondary">Furnace Scale Loss (%)</label>
+                          <button 
+                            type="button"
+                            onClick={() => setShowProcessGuide(!showProcessGuide)}
+                            className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${
+                              showProcessGuide 
+                                ? 'bg-rose-600 text-white shadow-sm' 
+                                : 'bg-rose-50/50 text-rose-600 border border-rose-200 dark:bg-rose-950/20 dark:border-rose-800'
+                            }`}
+                          >
+                            <Info className="w-3 h-3" />
+                            {showProcessGuide ? 'Hide Guide' : 'Process Guide'}
+                          </button>
+                        </div>
+                        
+                        {showProcessGuide && (
+                          <div className="mt-2 p-3 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-800 rounded-lg animate-in fade-in slide-in-from-top-1 duration-200">
+                            <div className="flex gap-2">
+                              <HelpCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                              <div className="space-y-1">
+                                <p className="text-xs font-bold text-rose-700 dark:text-rose-400">Contextual Tip for {materialCategory}:</p>
+                                <p className="text-[11px] text-text-secondary leading-relaxed italic">
+                                  "{scaleLossTip}"
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Auto-Suggest Preset Drop-down based on the selected material group */}
+                        <div className="space-y-1 mt-3">
+                          <label className="block text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+                            Auto-Suggest Preset ({materialCategory})
+                          </label>
+                          <select
+                            className="block w-full px-3 py-2 text-xs border border-border rounded-xl bg-background/50 text-text-primary focus:outline-none focus:border-rose-600 focus:ring-1 focus:ring-rose-600 transition-all cursor-pointer"
+                            value={TYPICAL_SCALE_LOSS_PRESETS[materialCategory]?.some(preset => Math.abs(preset.value - formData.scaleLossPercent) < 0.001) ? TYPICAL_SCALE_LOSS_PRESETS[materialCategory].find(p => Math.abs(p.value - formData.scaleLossPercent) < 0.001)?.value : ""}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              if (!isNaN(val)) {
+                                setFormData(prev => ({ ...prev, scaleLossPercent: val }));
+                              }
+                            }}
+                          >
+                            <option value="">-- Choose a typical heating preset configuration --</option>
+                            {TYPICAL_SCALE_LOSS_PRESETS[materialCategory]?.map((preset, idx) => (
+                              <option key={idx} value={preset.value}>
+                                {preset.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <input
+                          type="range"
+                          min="0"
+                          max="10"
+                          step="0.05"
+                          value={formData.scaleLossPercent}
+                          onInput={(e: any) => setFormData(prev => ({ ...prev, scaleLossPercent: parseFloat(e.target.value) || 0 }))}
+                          onChange={() => {}}
+                          className="w-full h-1.5 bg-background rounded-lg cursor-pointer accent-rose-600 mt-4"
+                        />
+                        <div className="flex justify-between text-xs font-mono text-text-secondary">
+                          <span>0% (Scale-free)</span>
+                          <span className="text-rose-600 dark:text-rose-400 font-bold">{formData.scaleLossPercent.toFixed(2)}%</span>
+                          <span>10% (High Scale)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between pt-2">
+                      <button 
+                        type="button" 
+                        onClick={() => setBilletStep(2)}
+                        className="px-5 py-2 bg-surface hover:bg-background border border-border text-text-primary text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Back
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                           // Ensure form scrolls back down if desired, or just complete
+                        }}
+                        className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
+                      >
+                        <Check className="w-4 h-4" />
+                        Review Results Below
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Billet calculated status layout */}
-              <div className="mt-6 bg-rose-50/10 border border-rose-100/10 p-4 rounded-xl grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
+              <div className="mt-6 bg-rose-50/10 border border-rose-100/10 p-4 rounded-xl grid grid-cols-1 gap-4 text-xs font-mono">
                 <div>
                   <span className="text-text-secondary block font-bold">Total Input Billet Weight</span>
                   <span className="text-base font-black text-text-primary">

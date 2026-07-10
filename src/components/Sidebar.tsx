@@ -7,8 +7,8 @@ interface SidebarProps {
   onNavigate: (view: View) => void;
   user: User;
   session: { user: User; access_token: string } | null;
-  currentModule: 'machining' | 'casting' | 'forging' | 'stamping' | null;
-  onModuleChange: (module: 'machining' | 'casting' | 'forging' | 'stamping' | null) => void;
+  currentModule: 'machining' | 'casting' | 'forging' | 'stamping' | 'machineHourRate' | null;
+  onModuleChange: (module: 'machining' | 'casting' | 'forging' | 'stamping' | 'machineHourRate' | null) => void;
 }
 
 const NavItem: React.FC<{
@@ -69,8 +69,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, user,
     <aside className="bg-surface text-text-primary flex flex-col p-3 shadow-xs border-r border-border/80 transition-all duration-200 w-64 h-full">
         <div className="py-4 mb-3 border-b border-border/50 h-auto flex flex-col justify-center gap-2">
             <button onClick={() => { onModuleChange(null); onNavigate('landing'); }} className="text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-xs p-1 ml-3 flex-shrink-0 animate-fade-in">
-                <h1 className="text-2xl font-bold tracking-wide text-text-primary">
-                  Costing<span className="text-primary font-extrabold ml-1">Hub</span>
+                <h1 className="text-2xl font-bold tracking-wide">
+                  <span className="text-[#7c3aed] dark:text-[#a855f7]">Costing</span><span className="text-black dark:text-white font-extrabold ml-1">Hub</span>
                 </h1>
                 <p className="text-xs text-text-muted font-semibold tracking-normal mt-0.5">All Costs. One Hub.</p>
             </button>
@@ -156,11 +156,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, user,
                 <NavItem label="Forming Methods Master" view="processes" icon={Icons.Processes} {...{ currentView, onNavigate }} />
               </>
             )}
+
+            {currentModule === 'machineHourRate' && (
+              <>
+                <NavItem label="Home Page" view="landing" icon={Icons.Home} currentView={currentView} onNavigate={() => { onModuleChange(null); onNavigate('landing'); }} />
+                <NavItem label="Saved Calculations" view="calculations" icon={Icons.Calculations} {...{ currentView, onNavigate }} />
+                <NavItem label="New MHR Cost Sheet" view="newEstimation" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>} {...{ currentView, onNavigate }} />
+              </>
+            )}
+
+            {!currentModule && (
+              <>
+                <NavItem label="Home Page" view="landing" icon={Icons.Home} currentView={currentView} onNavigate={() => { onModuleChange(null); onNavigate('landing'); }} />
+                <NavItem label="Saved Calculations" view="calculations" icon={Icons.Calculations} {...{ currentView, onNavigate }} />
+                <NavItem label="Project Hub" view="projectManagement" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} {...{ currentView, onNavigate }} />
+                <NavItem label="SaaS Architecture" view="architecture" icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9" rx="1" /><rect x="14" y="3" width="7" height="5" rx="1" /><rect x="14" y="12" width="7" height="9" rx="1" /><rect x="3" y="16" width="7" height="5" rx="1" /><path d="M7 8h7" /><path d="M14 15H7" /></svg>} {...{ currentView, onNavigate }} />
+              </>
+            )}
+
+            {currentModule && (
+              <>
+                <div className="pt-2 border-t border-border/50 my-1"></div>
+                <NavItem label="Project Hub" view="projectManagement" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>} {...{ currentView, onNavigate }} />
+              </>
+            )}
         </nav>
         
         <div className="mt-auto pt-2 border-t border-border/50 space-y-2">
             
-            {currentModule && (
+            {user && (
               <div className="mx-2 mb-2 p-4 bg-background/50 rounded-xl border border-border shadow-sm">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest">Active Plan</span>
@@ -203,6 +227,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, user,
                         <div className="py-1" role="menu" aria-orientation="vertical">
                             <button onClick={() => { onNavigate('settings'); setIsDropdownOpen(false); }} className="w-full text-left block px-4 py-2 text-sm text-text-primary hover:bg-background/60">
                                 Settings
+                            </button>
+                            <button onClick={() => { onNavigate('architecture'); setIsDropdownOpen(false); }} className="w-full text-left block px-4 py-2 text-sm text-text-primary hover:bg-background/60">
+                                SaaS Architecture
                             </button>
                             {user.role === 'enterprise_admin' && (
                                 <button onClick={() => { onNavigate('enterprise'); setIsDropdownOpen(false); }} className="w-full text-left block px-4 py-2 text-sm text-text-primary hover:bg-background/60">

@@ -77,6 +77,13 @@ export const EnterprisePage: React.FC<EnterprisePageProps> = ({ user }) => {
                 const { data: authData, error: authError } = await supabase.auth.signUp({
                     email: newUserEmail,
                     password: pOverride,
+                    options: {
+                        data: {
+                            name: newUserName,
+                            full_name: newUserName,
+                            role: 'enterprise_user',
+                        }
+                    }
                 });
                 if (authError) {
                     console.warn("Supabase Auth sign up yielded error: ", authError.message);

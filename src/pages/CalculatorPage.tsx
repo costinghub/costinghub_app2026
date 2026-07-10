@@ -1,7 +1,7 @@
 
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, Printer } from 'lucide-react';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
@@ -894,6 +894,10 @@ export const CalculatorPage: React.FC<CalculatorPageProps> = ({ user, materials,
             <div className="flex gap-2">
                 <Button type="button" onClick={() => onNavigate('castingCalculator')} variant="outline" size="sm">
                     Switch to Casting
+                </Button>
+                <Button type="button" onClick={() => window.print()} variant="outline" size="sm">
+                    <Printer className="w-4 h-4 mr-1.5" />
+                    Export PDF
                 </Button>
                 <Button type="button" onClick={() => setIsTemplateModalOpen(true)} variant="outline" size="sm">
                     Save as Template

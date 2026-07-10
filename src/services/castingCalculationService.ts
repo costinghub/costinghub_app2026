@@ -41,11 +41,54 @@ export const calculateCastingCosts = (
 
   const vol = batchVolume > 0 ? batchVolume : 1;
 
+  // Moulding Box & Cavity Calculation Logic
+  let recommendedCavities = undefined;
+  let boxVolumeCm3 = undefined;
+  let sandWeightKg = undefined;
+  let isHeightWarning = false;
+
+  const boxL = input.mouldingBoxLengthMm || 0;
+  const boxW = input.mouldingBoxWidthMm || 0;
+  const boxH = input.mouldingBoxHeightMm || 0;
+
+  if (boxL > 0 && boxW > 0 && boxH > 0) {
+    boxVolumeCm3 = (boxL * boxW * boxH) / 1000;
+    // Standard silica sand density is roughly 1.6 g/cm³
+    sandWeightKg = (boxVolumeCm3 * 1.6) / 1000;
+  }
+
+  const partL = input.partLengthMm || 0;
+  const partW = input.partWidthMm || 0;
+  const partH = input.partHeightMm || 0;
+  const margin = input.safetyMarginMm || 50;
+
+  if (boxL > 0 && boxW > 0 && partL > 0 && partW > 0) {
+    // Orientation 1: part L along box L, part W along box W
+    const nx1 = Math.floor((boxL - 2 * margin + margin) / (partL + margin));
+    const ny1 = Math.floor((boxW - 2 * margin + margin) / (partW + margin));
+    const n1 = Math.max(0, nx1) * Math.max(0, ny1);
+
+    // Orientation 2: part L along box W, part W along box L
+    const nx2 = Math.floor((boxL - 2 * margin + margin) / (partW + margin));
+    const ny2 = Math.floor((boxW - 2 * margin + margin) / (partL + margin));
+    const n2 = Math.max(0, nx2) * Math.max(0, ny2);
+
+    recommendedCavities = Math.max(n1, n2);
+  }
+
+  if (boxH > 0 && partH > 0 && boxH < (partH + 2 * margin)) {
+    isHeightWarning = true;
+  }
+
+  // Determine actual cavities to apply for gating analysis, clamping force and tooling amortization
+  const actualCavities = (input.cavityCalculationAuto && recommendedCavities && recommendedCavities > 0)
+    ? recommendedCavities
+    : (numberOfCavities > 0 ? numberOfCavities : 1);
+
   // Engineering Calculations
   let calculatedTonnage = undefined;
   if ((castingProcess === 'Pressure Die Casting' || castingProcess === 'HPDC' || castingProcess === 'LPDC') && projectedAreaCm2 > 0) {
-    const cavCount = numberOfCavities > 0 ? numberOfCavities : 1;
-    const totalArea = (projectedAreaCm2 * cavCount) + (input.runnerProjectedAreaCm2 || 0);
+    const totalArea = (projectedAreaCm2 * actualCavities) + (input.runnerProjectedAreaCm2 || 0);
     const pressure = input.intensificationPressureBar || injectionPressureBar || (castingProcess === 'HPDC' ? 800 : 100);
     calculatedTonnage = (totalArea * pressure) / 1000 * safetyFactor;
   }
@@ -89,7 +132,7 @@ export const calculateCastingCosts = (
     // Standard calculation: (Cost * Sharing Factor) / Lifetime
     // Sharing factor defaults to 1.0 (fully owned by this part)
     const sharingFactor = input.toolingSharingFactor ?? 1.0;
-    const cavCount = (numberOfCavities && numberOfCavities > 0) ? numberOfCavities : 1;
+    const cavCount = actualCavities;
     toolingAmortizedCostPerPart = patternLifeShots > 0 
       ? (patternCost * sharingFactor / (patternLifeShots * cavCount)) 
       : 0;
@@ -163,6 +206,12 @@ export const calculateCastingCosts = (
     
     calculatedTonnage,
     waxCostPerPart,
+    
+    // Moulding Box & Cavity Results
+    recommendedCavities,
+    boxVolumeCm3,
+    sandWeightKg,
+    isHeightWarning,
     
     toolingAmortizedCostPerPart,
     surfaceTreatmentCost: surfaceTreatmentCostPerPart * vol,

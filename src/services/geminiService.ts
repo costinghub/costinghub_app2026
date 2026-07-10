@@ -15,9 +15,9 @@ const generateContentUniversal = async (args: {
     const provider = config.provider || 'gemini';
 
     if (provider === 'gemini') {
-        const apiKey = config.geminiKey || process.env.VITE_GEMINI_API_KEY || process.env.VITE_API_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY;
+        const apiKey = config.geminiKey;
         if (!apiKey) {
-            throw new Error("No Gemini API key is configured. Please paste your custom Gemini API key under 'Settings > AI Integration Portal'.");
+            throw new Error("No Gemini API key is configured. Please paste your custom Gemini API key under 'Settings > AI Integration Portal' or in your Profile.");
         }
         const ai = new GoogleGenAI({ apiKey });
         const selectedModel = config.geminiModel || args.model || 'gemini-1.5-flash';

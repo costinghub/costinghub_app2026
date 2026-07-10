@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Clock, Hammer, Layers, ShieldCheck, TrendingUp, HelpCircle, AlertCircle, Sparkles, Box } from 'lucide-react';
+import { Clock, Hammer, Layers, ShieldCheck, TrendingUp, HelpCircle, AlertCircle, Sparkles, Box, Printer } from 'lucide-react';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
@@ -48,6 +48,16 @@ const CASTING_PROCESSES = [
   { name: 'Permanent Mold', defaultYield: 72, defaultPatternCost: 14000, defaultPatternLife: 30000, defaultMoldingTime: 2.5, defaultMeltingCost: 0.40 },
 ];
 
+const MOULDING_BOX_PRESETS = [
+  { id: '300x300x150', name: 'Standard Small Flask: 300 x 300 x 150 mm', length: 300, width: 300, height: 150 },
+  { id: '400x400x200', name: 'Standard Medium Flask: 400 x 400 x 200 mm', length: 400, width: 400, height: 200 },
+  { id: '500x500x250', name: 'Standard Production Flask: 500 x 500 x 250 mm', length: 500, width: 500, height: 250 },
+  { id: '600x600x300', name: 'Large Production Flask: 600 x 600 x 300 mm', length: 600, width: 600, height: 300 },
+  { id: '800x800x400', name: 'Heavy Industry Flask: 800 x 800 x 400 mm', length: 800, width: 800, height: 400 },
+  { id: '1000x1000x500', name: 'Extra Large Flask: 1000 x 1000 x 500 mm', length: 1000, width: 1000, height: 500 },
+  { id: 'custom', name: 'Custom Flask Size...', length: 0, width: 0, height: 0 }
+];
+
 const INITIAL_CASTING_INPUT: CastingInput = {
   id: '',
   calculationNumber: '',
@@ -71,6 +81,16 @@ const INITIAL_CASTING_INPUT: CastingInput = {
   yieldRate: 60,
   scrapReturnValuePercent: 45,
   scrapReturnRate: 95,
+  numberOfCavities: 4,
+  mouldingBoxSelection: '500x500x250',
+  mouldingBoxLengthMm: 500,
+  mouldingBoxWidthMm: 500,
+  mouldingBoxHeightMm: 250,
+  cavityCalculationAuto: true,
+  partLengthMm: 150,
+  partWidthMm: 120,
+  partHeightMm: 80,
+  safetyMarginMm: 50,
   patternCost: 1500,
   patternLifeShots: 5000,
   isToolingAmortizedAuto: true,
@@ -204,7 +224,9 @@ export const CastingCalculatorPage: React.FC<CastingCalculatorPageProps> = ({
       'annualVolume', 'batchVolume', 'finishedPartWeightKg', 'partSurfaceAreaM2',
       'projectedAreaCm2', 'runnerProjectedAreaCm2', 'injectionPressureBar', 
       'intensificationPressureBar', 'safetyFactor', 'waxWeightKg',
-      'waxCostPerKg', 'shellLayersCount', 'patternInjectionTimeSec', 'numberOfCavities'
+      'waxCostPerKg', 'shellLayersCount', 'patternInjectionTimeSec', 'numberOfCavities',
+      'mouldingBoxLengthMm', 'mouldingBoxWidthMm', 'mouldingBoxHeightMm',
+      'partLengthMm', 'partWidthMm', 'partHeightMm', 'safetyMarginMm'
     ];
     
     setFormData(prev => ({
@@ -264,6 +286,27 @@ export const CastingCalculatorPage: React.FC<CastingCalculatorPageProps> = ({
           materialCostPerKg: cost,
         };
       });
+    }
+  };
+
+  const handleBoxPresetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    const preset = MOULDING_BOX_PRESETS.find(p => p.id === val);
+    if (preset) {
+      if (preset.id === 'custom') {
+        setFormData(prev => ({
+          ...prev,
+          mouldingBoxSelection: 'custom',
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          mouldingBoxSelection: preset.id,
+          mouldingBoxLengthMm: preset.length,
+          mouldingBoxWidthMm: preset.width,
+          mouldingBoxHeightMm: preset.height,
+        }));
+      }
     }
   };
 
@@ -482,6 +525,10 @@ export const CastingCalculatorPage: React.FC<CastingCalculatorPageProps> = ({
         <div className="flex gap-2">
             <Button type="button" onClick={() => onNavigate('calculator')} variant="outline" size="sm">
                 Switch to Machining
+            </Button>
+            <Button type="button" onClick={() => window.print()} variant="outline" size="sm">
+                <Printer className="w-4 h-4 mr-1.5" />
+                Export PDF
             </Button>
             <Button type="button" onClick={handleSaveDraftClick} variant="secondary" size="sm">
                 Save Draft
@@ -847,6 +894,207 @@ export const CastingCalculatorPage: React.FC<CastingCalculatorPageProps> = ({
                     </div>
                   </div>
                 )}
+              </div>
+            </Card>
+
+            {/* Moulding Box Size, Selection & Cavity Calculation */}
+            <Card>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-primary flex items-center gap-2">
+                  <Box className="w-5 h-5 text-indigo-500" />
+                  Moulding Box (Flask) & Cavity Engineering
+                </h2>
+              </div>
+
+              <div className="space-y-6">
+                {/* Moulding Box Selection */}
+                <div className="bg-background/40 border border-border p-4 rounded-xl">
+                  <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
+                    Moulding Box (Flask) Selection
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <select
+                      className="w-full bg-surface border border-border rounded-lg p-2.5 text-sm text-text-primary focus:ring-2 focus:ring-primary focus:border-transparent cursor-pointer"
+                      value={formData.mouldingBoxSelection || 'custom'}
+                      onChange={handleBoxPresetChange}
+                    >
+                      {MOULDING_BOX_PRESETS.map(preset => (
+                        <option key={preset.id} value={preset.id}>
+                          {preset.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="flex gap-4 items-center text-xs font-mono bg-surface border border-dashed border-border px-4 py-2.5 rounded-lg">
+                      <div>
+                        <span className="text-text-muted uppercase text-[9px] block">Flask Volume</span>
+                        <strong className="text-text-primary text-sm">
+                          {castingResults.boxVolumeCm3 ? `${(castingResults.boxVolumeCm3 / 1000).toFixed(2)} L` : 'N/A'}
+                        </strong>
+                      </div>
+                      <div className="w-px h-8 bg-border border-l border-dashed" />
+                      <div>
+                        <span className="text-text-muted uppercase text-[9px] block">Est. Sand Weight</span>
+                        <strong className="text-text-primary text-sm">
+                          {castingResults.sandWeightKg ? `${castingResults.sandWeightKg.toFixed(2)} kg` : 'N/A'}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Box Dimensions */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Input
+                    label="Box / Flask Length"
+                    name="mouldingBoxLengthMm"
+                    type="number"
+                    value={formData.mouldingBoxLengthMm || ''}
+                    onChange={handleInputChange}
+                    unit="mm"
+                    disabled={formData.mouldingBoxSelection !== 'custom'}
+                  />
+                  <Input
+                    label="Box / Flask Width"
+                    name="mouldingBoxWidthMm"
+                    type="number"
+                    value={formData.mouldingBoxWidthMm || ''}
+                    onChange={handleInputChange}
+                    unit="mm"
+                    disabled={formData.mouldingBoxSelection !== 'custom'}
+                  />
+                  <Input
+                    label="Box / Flask Height"
+                    name="mouldingBoxHeightMm"
+                    type="number"
+                    value={formData.mouldingBoxHeightMm || ''}
+                    onChange={handleInputChange}
+                    unit="mm"
+                    disabled={formData.mouldingBoxSelection !== 'custom'}
+                  />
+                </div>
+
+                {/* Cavity Calculation Options */}
+                <div className="border-t border-border/60 pt-6">
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-3">
+                      <input
+                        id="cavity-calc-auto-toggle"
+                        type="checkbox"
+                        checked={formData.cavityCalculationAuto !== false}
+                        onChange={(e) => setFormData(prev => ({ ...prev, cavityCalculationAuto: e.target.checked }))}
+                        className="w-4.5 h-4.5 accent-indigo-600 rounded cursor-pointer"
+                      />
+                      <label htmlFor="cavity-calc-auto-toggle" className="text-sm font-bold text-text-primary cursor-pointer select-none">
+                        Auto-Calculate Cavities based on Part Size
+                      </label>
+                    </div>
+                    {formData.cavityCalculationAuto !== false && (
+                      <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase px-2 py-0.5 rounded">
+                        Active
+                      </span>
+                    )}
+                  </div>
+
+                  {formData.cavityCalculationAuto !== false ? (
+                    <div className="space-y-6">
+                      <p className="text-xs text-text-muted leading-relaxed">
+                        Specify part envelope dimensions (including any pattern shrinkage draft allowances) to find the optimal nested cavity layout.
+                      </p>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 bg-background/20 p-4 rounded-xl border border-border">
+                        <Input
+                          label="Part Length"
+                          name="partLengthMm"
+                          type="number"
+                          value={formData.partLengthMm || ''}
+                          onChange={handleInputChange}
+                          unit="mm"
+                        />
+                        <Input
+                          label="Part Width"
+                          name="partWidthMm"
+                          type="number"
+                          value={formData.partWidthMm || ''}
+                          onChange={handleInputChange}
+                          unit="mm"
+                        />
+                        <Input
+                          label="Part Height"
+                          name="partHeightMm"
+                          type="number"
+                          value={formData.partHeightMm || ''}
+                          onChange={handleInputChange}
+                          unit="mm"
+                        />
+                        <Input
+                          label="Wall/Gap Margin"
+                          name="safetyMarginMm"
+                          type="number"
+                          value={formData.safetyMarginMm || ''}
+                          onChange={handleInputChange}
+                          unit="mm"
+                          helperText="Margin to flask wall and parting gaps"
+                        />
+                      </div>
+
+                      {/* Display calculations */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-indigo-50/20 border border-indigo-100 dark:border-indigo-500/10 p-4 rounded-xl flex items-center gap-4">
+                          <Layers className="w-8 h-8 text-indigo-500 shrink-0" />
+                          <div>
+                            <span className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 block mb-1">
+                              Calculated Cavity Capacity
+                            </span>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-3xl font-black text-text-primary">
+                                {castingResults.recommendedCavities ?? 0}
+                              </span>
+                              <span className="text-xs font-bold text-text-muted">CAVITIES</span>
+                            </div>
+                            <span className="text-[9px] text-text-secondary block mt-1">
+                              Optimized nested grid layout for standard casting molds.
+                            </span>
+                          </div>
+                        </div>
+
+                        {castingResults.isHeightWarning && (
+                          <div className="bg-red-50/30 border border-red-200 dark:border-red-500/10 p-4 rounded-xl flex items-center gap-4">
+                            <AlertCircle className="w-8 h-8 text-red-500 shrink-0" />
+                            <div>
+                              <span className="text-xs font-bold text-red-700 dark:text-red-400 block">
+                                Flask Height Warning
+                              </span>
+                              <p className="text-xs text-text-secondary mt-1 leading-relaxed">
+                                Flask height ({formData.mouldingBoxHeightMm} mm) is too shallow. Recommended height is at least{' '}
+                                <strong className="text-text-primary">
+                                  {(formData.partHeightMm || 0) + 2 * (formData.safetyMarginMm || 50)} mm
+                                </strong>{' '}
+                                to prevent mould collapse.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-background/20 p-4 rounded-xl border border-border">
+                      <p className="text-xs text-text-muted leading-relaxed mb-4">
+                        Cavity calculation is set to manual. Specify the number of pattern cavities below:
+                      </p>
+                      <div className="max-w-xs">
+                        <Input
+                          label="Number of Cavities"
+                          name="numberOfCavities"
+                          type="number"
+                          min="1"
+                          value={formData.numberOfCavities || 1}
+                          onChange={handleInputChange}
+                          unit="cavities"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </Card>
 

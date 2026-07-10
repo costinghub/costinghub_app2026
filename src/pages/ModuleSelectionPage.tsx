@@ -17,7 +17,7 @@ export const ModuleSelectionPage: React.FC<Props> = ({ onModuleSelect, onNavigat
   return (
     <div className="flex flex-col h-full w-full p-10 space-y-12 animate-fade-in overflow-y-auto">
         <div className="flex flex-col gap-1 items-start">
-            <h1 className="text-2xl font-black text-primary tracking-tighter">CostingHub</h1>
+            <h1 className="text-2xl font-black tracking-tighter"><span className="text-[#7c3aed] dark:text-[#a855f7]">Costing</span><span className="text-black dark:text-white">Hub</span></h1>
             <p className="text-sm font-medium text-text-secondary">Engineered for precision and speed.</p>
         </div>
 

@@ -187,7 +187,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({ calculation, user, onClo
                 {/* Branding & Document Type (Right) */}
                 <div className="text-right">
                     <div className="flex flex-col items-end mb-4">
-                        <h2 className="text-2xl font-bold text-primary">CostingHub</h2>
+                        <h2 className="text-2xl font-bold"><span className="text-[#7c3aed] dark:text-[#a855f7]">Costing</span><span className="text-black dark:text-white">Hub</span></h2>
                         <p className="text-xs text-text-muted printable-text-secondary italic">All Costs. One Hub.</p>
                     </div>
                     <h2 className="text-4xl font-bold text-text-primary printable-text-primary tracking-tight">QUOTE</h2>

@@ -39,6 +39,7 @@ const viewTitles: Record<View, string> = {
     changelog: 'Software Changelog',
     resetPassword: 'Reset Password',
     oauthConsent: 'OAuth Consent',
+    projectManagement: 'Consolidated Project Hub',
 };
 
 const LogoutIcon: React.FC = () => (
@@ -63,7 +64,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ user, session, currentVi
     const partNumber = calculatorHeaderInfo?.partNumber || editingCalculation?.inputs.partNumber;
     const calculationNumber = calculatorHeaderInfo?.calculationNumber || editingCalculation?.inputs.calculationNumber;
 
-    const showSidebar = currentView !== 'auth' && currentView !== 'resetPassword' && currentView !== 'oauthConsent' && currentView !== 'landing' && currentView !== 'settings' && currentView !== 'subscription' && currentView !== 'profile' && !!currentModule;
+    const showSidebar = currentView !== 'auth' && currentView !== 'resetPassword' && currentView !== 'oauthConsent' && currentView !== 'landing' && currentView !== 'settings' && currentView !== 'subscription' && currentView !== 'profile' && (!!currentModule || currentView === 'projectManagement');
 
     useEffect(() => {
         setIsMobileMenuOpen(false);

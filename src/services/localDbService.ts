@@ -125,24 +125,26 @@ export const localDb = {
         email,
         password: password || 'password'
       });
+      
       if (authError) throw authError;
 
       // 2. Fetch User Profile
       const { data: profileData, error: profileError } = await supabase.from('profiles').select('*').eq('id', authData.user.id).maybeSingle();
       
       let user: any = profileData;
-      // Polyfill profile if doesn't exist (super admin trick or fresh auth)
+      // Polyfill profile if doesn't exist locally (super admin trick or fresh auth)
       if (!profileData) {
          user = {
             id: authData.user.id,
             email,
-            name: email.split('@')[0],
-            role: 'user',
+            name: authData.user.user_metadata?.full_name || authData.user.user_metadata?.name || email.split('@')[0],
+            role: authData.user.user_metadata?.role || 'user',
+            company_name: authData.user.user_metadata?.company_name || '',
             plan_name: 'Free',
             subscription_status: 'active'
          };
-         // Upsert the missing profile into the profiles table
-         await supabase.from('profiles').upsert(user);
+         // We do not upsert here, as the trigger handles it, but in case the trigger didn't run
+         // we just keep it in memory
       }
       
       localStorage.setItem('costinghub_current_user', JSON.stringify(user));
@@ -152,13 +154,21 @@ export const localDb = {
       // 1. Supabase Auth Signup
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
-        password: password || 'password'
+        password: password || 'password',
+        options: {
+          data: {
+            name: name,
+            full_name: name,
+            company_name: companyName,
+          }
+        }
       });
       
       if (authError) throw authError;
       if (!authData.user) throw new Error("Verification email sent, please check your inbox.");
 
-      // 2. Setup Profile Info
+      // 2. Setup Profile Info (We don't need to manually insert into profiles table anymore, the trigger does it)
+      // but we return the object for the frontend state
       const profile = {
          id: authData.user.id,
          email,
@@ -171,14 +181,8 @@ export const localDb = {
          subscription_status: 'active'
       };
 
-      // 3. Save to Custom profiles table
-      const { data: profileData, error: profileErr } = await supabase.from('profiles').insert(profile).select().maybeSingle();
-      if (profileErr) {
-         console.warn("Could not save profile immediately. Assuming RLS policy issue or table missing:", profileErr);
-      }
-
-      localStorage.setItem('costinghub_current_user', JSON.stringify(profileData || profile));
-      return profileData || profile;
+      localStorage.setItem('costinghub_current_user', JSON.stringify(profile));
+      return profile;
     },
     signOut: async () => {
       await supabase.auth.signOut();

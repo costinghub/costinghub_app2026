@@ -57,9 +57,9 @@ export const AIAssistantWidget: React.FC<{ onNavigate: (view: 'settings') => voi
             let responseText = '';
 
             if (provider === 'gemini') {
-                const apiKey = currentConfig.geminiKey || process.env.VITE_GEMINI_API_KEY || process.env.VITE_API_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY;
+                const apiKey = currentConfig.geminiKey;
                 if (!apiKey) {
-                    throw new Error("No Gemini API key is configured. Go to Settings > AI Integration Portal to enter your key.");
+                    throw new Error("No Gemini API key is configured. Go to Settings > AI Integration Portal or your Profile to enter your key.");
                 }
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${currentConfig.geminiModel || 'gemini-1.5-flash'}:generateContent?key=${apiKey}`, {
                     method: 'POST',

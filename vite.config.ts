@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     server: {
+      hmr: false,
       proxy: {
         '/api': {
           target: 'http://localhost:3000',
